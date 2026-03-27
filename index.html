@@ -1,1 +1,752 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>サロン研修プログラム</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>◆</text></svg>">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js" crossorigin></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.26.2/babel.min.js" crossorigin></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    textarea:focus { outline: none; box-shadow: 0 0 0 2px rgba(201,145,138,0.3); }
+    button { cursor: pointer; border: none; background: none; }
+    ::selection { background: rgba(201,145,138,0.3); }
+    .tech-modal { transition: opacity 0.3s, visibility 0.3s; opacity: 0; visibility: hidden; }
+    .tech-modal.open { opacity: 1; visibility: visible; }
+    .tech-modal-content { transform: scale(0.95); transition: transform 0.3s ease-out; }
+    .tech-modal.open .tech-modal-content { transform: scale(1); }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useRef } = React;
 
+// ── SVG ICON SYSTEM ──
+const Icons = {
+  brain: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a5 5 0 0 1 4.65 6.82A5 5 0 0 1 18.5 14a5 5 0 0 1-3 4.58V22h-3v-3.42A5 5 0 0 1 9.5 14a5 5 0 0 1 1.85-5.18A5 5 0 0 1 12 2z"/><path d="M12 2v6m-3 2h6"/></svg>),
+  sparkle: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l2.09 6.26L20 10.27l-4.91 3.82L16.18 22 12 18.27 7.82 22l1.09-7.91L4 10.27l5.91-2.01z"/></svg>),
+  chat: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>),
+  door: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 2h11a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><path d="M12 14a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/><path d="M9 2v20"/></svg>),
+  lightbulb: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18h6m-5 3h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg>),
+  shield: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>),
+  handshake: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20.5 10.5l-3-3a2 2 0 0 0-2.83 0L12 10.17l-2.67-2.67a2 2 0 0 0-2.83 0l-3 3"/><path d="M3.5 14.5l5.5 5.5 3-3 3 3 5.5-5.5"/><path d="M2 10h4m12 0h4"/></svg>),
+  clipboard: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M9 14l2 2 4-4"/></svg>),
+  target: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>),
+  scissors: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>),
+  chevLeft: <svg viewBox="0 0 16 16" fill="none"><path d="M10 12l-4-4 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>,
+  chevRight: <svg viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>,
+  check: <svg viewBox="0 0 16 16" fill="none"><path d="M3.5 8.5l3 3 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  pen: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>),
+};
+
+const MODULE_ICONS = { m1: "brain", m2: "sparkle", m3: "chat", m4: "door", m5: "lightbulb", m6: "shield", m7: "handshake", m8: "clipboard", m9: "target" };
+const MODULE_ACCENT = { m1: "#7C3F58", m2: "#B07D62", m3: "#6B7F5C", m4: "#8B6A7A", m5: "#A67C52", m6: "#5B6E82", m7: "#7A6B5D", m8: "#6D5E7B", m9: "#8C5C5C" };
+
+// ── GAS連携設定 ──
+const GAS_URL = "https://script.google.com/macros/s/AKfycbw62UCn1x1GYw8OavGGvod17NPvqexOj4hx6mPDRNZ51Y1cu0K0uX9L1nlJAJB7bUh8Pg/exec";
+
+const sendToGAS = async (payload) => {
+  if (!GAS_URL) return null;
+  try {
+    const res = await fetch(GAS_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(payload), redirect: "follow" });
+    const text = await res.text();
+    try { return JSON.parse(text); } catch { return { error: "GAS応答パースエラー" }; }
+  } catch (e) { return { error: "GAS接続エラー: " + e.message }; }
+};
+
+const fetchFromGAS = async (params = {}) => {
+  if (!GAS_URL) return null;
+  try {
+    const url = new URL(GAS_URL);
+    Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+    const res = await fetch(url.toString(), { redirect: "follow" });
+    const text = await res.text();
+    try { return JSON.parse(text); } catch { return null; }
+  } catch (e) { return null; }
+};
+
+// ── ANIMATION WRAPPER ──
+const FadeIn = ({ children, delay = 0, className = "" }) => {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setVisible(true), delay); return () => clearTimeout(t); }, [delay]);
+  return (<div className={className} style={{ opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(16px)", transition: `opacity 0.6s cubic-bezier(0.16,1,0.3,1) ${delay}ms, transform 0.6s cubic-bezier(0.16,1,0.3,1) ${delay}ms` }}>{children}</div>);
+};
+
+// ── TECHNICAL TRAINING DATA (②から統合) ──
+const TECH_LESSON_DATA = {
+  1: { title: "Salon Basic / Hygiene (衛生管理と法規)", category: "Theory / Basic",
+    sections: [
+      { title: "1. 美容師法と消毒義務", content: '<p class="text-sm" style="color:#5D4E55;margin-bottom:8px">美容師法に基づき、アイリストは器具の消毒を徹底する義務があります。感染症（結膜炎、B型肝炎等）の拡散を防ぐため、以下の消毒法を使い分けます。</p><ul style="font-size:12px;color:#5D4E55;list-style:disc;padding-left:20px"><li><strong>紫外線消毒:</strong> 20分以上照射（ステリライザー）。ツイザー等の金属類保管に最適。</li><li><strong>エタノール消毒:</strong> 76.9%〜81.4%エタノールに10分間浸漬。血液付着時は無効（次亜塩素酸Naが必要）。</li><li><strong>煮沸消毒:</strong> 沸騰後2分間以上。タオルなどのリネン類に有効。</li></ul>', proTip: "ツイザーを落とした場合、お客様の前で「消毒済みの新しいもの」と交換するパフォーマンスが信頼を生みます。" },
+      { title: "2. 手指衛生とサロンワーク", content: '<p class="text-sm" style="color:#5D4E55">お客様の肌に触れる手指は最大の感染経路です。施術前、中断後、施術後は必ずアルコール消毒を行います。マスク着用は飛沫感染（グルーの成分吸入も含む）を防ぐために必須です。</p>' }
+    ],
+    quiz: [
+      { q: "ツイザーの消毒として法律で認められている紫外線照射時間は？", opts: ["5分間以上", "10分間以上", "20分間以上"], ans: 2, exp: "美容師法施行規則により、紫外線消毒は20分間以上と定められています。" },
+      { q: "血液が付着した器具の消毒に最も適切なのは？", opts: ["エタノール清拭", "次亜塩素酸ナトリウム", "紫外線消毒"], ans: 1, exp: "血液感染リスクがある場合、次亜塩素酸Naや煮沸が必要です。" }
+    ]
+  },
+  2: { title: "Anatomy & Safety Theory (目元の構造とアレルギー)", category: "Theory / Essential",
+    sections: [
+      { title: "1. 毛髪科学とPHコントロール", content: '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:12px;color:#5D4E55"><div style="background:#fff;padding:12px;border-radius:8px;border:1px solid #e5e7eb"><strong>キューティクル:</strong> pH4.5-5.5(弱酸性)で閉じています。アルカリ性に傾くと開き、ダメージの原因に。</div><div style="background:#fff;padding:12px;border-radius:8px;border:1px solid #e5e7eb"><strong>毛周期:</strong> 成長期・退行期・休止期のサイクル。エクステは「退行期」の毛を選定して装着するのがベスト。</div></div>' },
+      { title: "2. グルーアレルギーのメカニズム", content: '<p class="text-sm" style="color:#5D4E55">シアノアクリレートが硬化する際に発生する<strong>「ホルムアルデヒド」</strong>がアレルゲンです。揮発成分は水分に引かれる性質があるため、目が濡れていると強烈なしみやアレルギー反応を引き起こします。</p>', proTip: "お客様に「目がしみますか？」と聞く前に、涙目になっていないか、テープが浮いていないかを確認するのがプロです。" }
+    ],
+    quiz: [
+      { q: "エクステ装着に最も適している毛周期は？", opts: ["成長初期", "退行期", "休止期"], ans: 1, exp: "退行期は毛根が安定しているため、持続力が最も高くなります。" },
+      { q: "グルー硬化時に発生する有害な揮発成分は？", opts: ["アセトン", "ホルムアルデヒド", "ケラチン"], ans: 1, exp: "ホルムアルデヒドは粘膜刺激やアレルギーを引き起こします。" }
+    ]
+  },
+  3: { title: "Lash Lift Theory (ラッシュリフト理論)", category: "Perm / Brow",
+    sections: [
+      { title: "1. 還元と酸化の化学", content: '<ul style="font-size:13px;color:#5D4E55;list-style:disc;padding-left:20px;line-height:1.8"><li><strong>1剤（還元剤）:</strong> シスチン結合（S-S結合）を切断。毛が軟化しロッドの形に変形できる状態に。</li><li><strong>2剤（酸化剤）:</strong> 切断されたS-S結合を再結合させ形を固定。</li></ul>' },
+      { title: "2. 軟化チェックの極意", content: '<p class="text-sm" style="color:#5D4E55">軟化不足は「かからない」、過軟化は「チリつき」の原因。テストカールで毛がロッドに沿うか確認。中間水洗で1剤を完全に流すことがダメージ予防の鍵です。</p>' }
+    ],
+    quiz: [
+      { q: "1剤の役割として正しいものは？", opts: ["S-S結合の切断", "S-S結合の再結合", "キューティクルのコーティング"], ans: 0, exp: "1剤（還元剤）は結合を切って毛を柔らかくします。" },
+      { q: "過軟化によって起こるトラブルは？", opts: ["カールが取れやすくなる", "毛先がチリつく（ビビリ毛）", "根元が立ち上がらない"], ans: 1, exp: "過度な還元作用は毛髪のタンパク質を破壊します。" }
+    ]
+  },
+  4: { title: "Precision Winding (精密ワインディング)", category: "Perm / Brow",
+    sections: [
+      { title: "1. テンションと角度", content: '<p class="text-sm" style="color:#5D4E55">ワインディングは仕上がりを9割左右します。<strong>垂直90度</strong>に引き上げることで最大の立ち上がり効果が得られます。強すぎると粘膜が引っ張られ薬剤が目に入る危険があります。</p>' },
+      { title: "2. 毛先の処理", content: '<p class="text-sm" style="color:#5D4E55">毛先がクロスしたり折れたまま2剤を塗布すると、その形で固定されます。1本1本が平行になるようにセパレートします。</p>', proTip: "目頭・目尻の産毛を巻き込み忘れると仕上がりのクオリティが下がります。" }
+    ],
+    quiz: [
+      { q: "ワインディング時に最も注意すべき安全管理は？", opts: ["グルーを大量に使う", "粘膜がめくれていないか確認する", "短時間で終わらせる"], ans: 1, exp: "粘膜がめくれると薬剤が眼球に付着し重大事故に繋がります。" },
+      { q: "毛先が折れたまま2剤を塗布するとどうなる？", opts: ["自然に直る", "折れた形で固定される", "カールが強くなる"], ans: 1, exp: "2剤は形を固定する作用があるため、折れた状態で固定されます。" }
+    ]
+  },
+  5: { title: "Eyebrow Mapping (黄金比と骨格診断)", category: "Perm / Brow",
+    sections: [
+      { title: "1. 3つの基本ポイント", content: '<ul style="font-size:13px;color:#5D4E55;line-height:1.8;list-style:disc;padding-left:20px"><li><strong>眉頭:</strong> 小鼻のくぼみの真上。</li><li><strong>眉山:</strong> 黒目の外側〜目尻の間。骨格の高い位置。</li><li><strong>眉尻:</strong> 小鼻と目尻を結んだ延長線上。眉頭より下がらないこと。</li></ul>' },
+      { title: "2. 筋肉の動きを読む", content: '<p class="text-sm" style="color:#5D4E55">目を開けた時、笑った時に表情筋がどう動くかを確認します。動いた時にも美しいデザインを作ることがプロの仕事です。</p>' }
+    ],
+    quiz: [
+      { q: "眉尻の位置として不適切なのは？", opts: ["小鼻と目尻の延長線上", "眉頭よりも下がった位置", "眉山よりも外側"], ans: 1, exp: "眉尻が眉頭より下がると困り顔の印象を与えます。" },
+      { q: "眉デザインに影響を与える主な筋肉は？", opts: ["咬筋", "眼輪筋と前頭筋", "胸鎖乳突筋"], ans: 1, exp: "前頭筋・皺眉筋・眼輪筋の動きを計算に入れる必要があります。" }
+    ]
+  },
+  6: { title: "Waxing Technique (ワックス脱毛技術)", category: "Perm / Brow",
+    sections: [
+      { title: "1. 温度管理と塗布", content: '<p class="text-sm" style="color:#5D4E55">ワックスは蜂蜜状の粘度が最適です。塗布時は<strong>毛流れに沿って</strong>圧をかけながら塗り込みます。</p>' },
+      { title: "2. 剥離防止", content: '<p class="text-sm" style="color:#5D4E55">剥がす際は<strong>皮膚をピンと張り</strong>、<strong>毛流れに逆らって</strong>、<strong>肌と平行に</strong>素早く剥がします。</p>', proTip: "レチノール系化粧品の使用歴確認は必須です。皮膚が薄くなっており高確率で剥離事故が起きます。" }
+    ],
+    quiz: [
+      { q: "ワックスを剥がす時の正しい方向は？", opts: ["毛流れに沿って", "毛流れに逆らって", "円を描くように"], ans: 1, exp: "毛流れに逆らうことで毛根からしっかり抜き取れます。" },
+      { q: "剥離を防ぐための最重要動作は？", opts: ["ワックスを厚く塗る", "ゆっくり剥がす", "皮膚にテンションをかける"], ans: 2, exp: "皮膚がたるんだ状態で剥がすと剥離します。" }
+    ]
+  },
+  7: { title: "Tweezer Work (ツイザーワーク)", category: "Extension",
+    sections: [
+      { title: "1. 左手の安定性（アイソレーション）", content: '<p class="text-sm" style="color:#5D4E55">エクステ技術の8割は左手（かき分け）で決まります。狙った自まつ毛1本を隔離し、グルーが硬化するまでキープする筋力と集中力が必要です。</p>' },
+      { title: "2. 安全な角度", content: '<p class="text-sm" style="color:#5D4E55">ツイザーの先端は常に眼球と平行、または外側を向くように意識します。</p>' }
+    ],
+    quiz: [
+      { q: "「アイソレーション」の意味は？", opts: ["まつ毛を洗浄すること", "1本の自まつ毛を隔離すること", "グルーを乾かすこと"], ans: 1, exp: "他の毛を巻き込まないよう、装着する1本だけを分ける技術です。" },
+      { q: "ツイザーを安定させるために最も重要なのは？", opts: ["息を止める", "指による支点（フィンガーレスト）", "椅子を高くする"], ans: 1, exp: "おでこや頬に薬指・小指を添えて支点を作ります。" }
+    ]
+  },
+  8: { title: "Glue Control (グルーコントロール)", category: "Extension",
+    sections: [
+      { title: "1. 湿度と硬化速度", content: '<p class="text-sm" style="color:#5D4E55">グルーは空気中の水分と反応して硬化します。<strong>湿度が高い＝硬化が速い。湿度が低い＝硬化が遅い。</strong>プロは室温25度、湿度50-60%をキープします。</p>' },
+      { title: "2. 適正量", content: '<p class="text-sm" style="color:#5D4E55">グルーの量は「微細な玉」ができる程度が基本。多すぎると隣の毛を巻き込み、少なすぎると取れる原因になります。</p>' }
+    ],
+    quiz: [
+      { q: "湿度が極端に低い場合グルーはどうなる？", opts: ["硬化が速くなる", "硬化が遅くなる", "変化しない"], ans: 1, exp: "水分が少ないため硬化速度が遅くなります。" },
+      { q: "グルーが多すぎる場合に起こる現象は？", opts: ["持続力が上がる", "隣の毛とくっつく", "カールが強くなる"], ans: 1, exp: "余分なグルーが隣の毛を巻き込みます。" }
+    ]
+  },
+  9: { title: "Single Lash Application (シングル装着技術)", category: "Extension",
+    sections: [
+      { title: "1. 根元距離 0.5〜1.0mm", content: '<p class="text-sm" style="color:#5D4E55"><strong>近すぎる：</strong>チクチク感、アレルギーのリスク。<strong>離れすぎ：</strong>リフトしやすく、デザインが崩れる。この絶妙な距離を全数一定に保つのがプロの技術です。</p>' },
+      { title: "2. 装着角度と方向", content: '<p class="text-sm" style="color:#5D4E55">エクステは「放射状（扇形）」に広がるように装着します。目頭は鼻筋側へ、目尻は耳側へ流します。</p>', proTip: "サイド付けと上付けを使い分け、癖毛を補正しましょう。" }
+    ],
+    quiz: [
+      { q: "エクステを皮膚に接着してはいけない理由は？", opts: ["取れやすくなるから", "コストがかかるから", "アレルギーや皮膚炎の原因になるから"], ans: 2, exp: "グルーは雑貨扱いであり、皮膚への直接付着は絶対NGです。" },
+      { q: "理想的なエクステの仕上がり方向は？", opts: ["全て垂直", "ランダム", "放射状（扇形）"], ans: 2, exp: "放射状に広がることで目が大きく美しく見えます。" }
+    ]
+  },
+  10: { title: "Removal & Repair (オフとリペア)", category: "Extension",
+    sections: [
+      { title: "1. リムーバーの使い分け", content: '<ul style="font-size:13px;color:#5D4E55;list-style:disc;padding-left:20px;line-height:1.8"><li><strong>クリームタイプ:</strong> 液垂れしにくく全オフに最適。安全性が高い。</li><li><strong>ジェルタイプ:</strong> 浸透が早いがリスクあり。ポイントオフ向き。</li></ul>' },
+      { title: "2. リペアの判断", content: '<p class="text-sm" style="color:#5D4E55">伸びてよれた毛、根元が浮いている毛をピンポイントで外し、新しい毛を付け足します。残せる毛と外すべき毛の選定眼が仕上がりを決めます。</p>' }
+    ],
+    quiz: [
+      { q: "全オフに最も適したリムーバーは？", opts: ["リキッドタイプ", "ジェルタイプ", "クリームタイプ"], ans: 2, exp: "クリームタイプは粘度が高く安全です。" },
+      { q: "リペア時、外すべきエクステは？", opts: ["つけたばかりの毛", "根元が浮いている・伸びきった毛", "まっすぐついている毛"], ans: 1, exp: "浮いている毛は外れやすく、伸びた毛はバラつきの原因です。" }
+    ]
+  },
+  11: { title: "Total Design (似合わせデザイン)", category: "Extension",
+    sections: [
+      { title: "1. 目の形別デザイン", content: '<ul style="font-size:13px;color:#5D4E55;list-style:disc;padding-left:20px;line-height:1.8"><li><strong>一重・奥二重:</strong> 強めのカール（D/Lカール）で黒目を出す。</li><li><strong>つり目:</strong> 目尻Jカール＋中央Cカールでタレ目風に。</li><li><strong>離れ目:</strong> 目頭〜中央にポイントを置き求心的に。</li></ul>' },
+      { title: "2. ミックス技術", content: '<p class="text-sm" style="color:#5D4E55">1-2mm異なる長さをミックスして装着することで、密度がありつつ抜け感のある立体的な仕上がりになります。</p>' }
+    ],
+    quiz: [
+      { q: "つり目を優しく見せたい場合の提案は？", opts: ["目尻にDカールをつける", "目尻にJカールで長さを出す", "全体を短くする"], ans: 1, exp: "目尻のカールを緩めてタレ目風にすることでキツさを緩和できます。" },
+      { q: "自然で立体的な仕上がりにするテクニックは？", opts: ["全て同じ長さにする", "太い毛だけを使う", "複数の長さをミックスする"], ans: 2, exp: "ランダムな長さを混ぜることで自然な立体感が生まれます。" }
+    ]
+  }
+};
+
+const TECH_CURRICULUM_ITEMS = [
+  {id:1, type:'theory', t:'Salon Basic / Hygiene', d:'衛生管理・法規'},
+  {id:2, type:'theory', t:'Anatomy & Safety', d:'目元の構造・アレルギー'},
+  {id:3, type:'perm_brow', t:'Lash Lift Theory', d:'還元・酸化・pH'},
+  {id:4, type:'perm_brow', t:'Precision Winding', d:'巻き上げ技術'},
+  {id:5, type:'perm_brow', t:'Eyebrow Mapping', d:'骨格診断・黄金比'},
+  {id:6, type:'perm_brow', t:'Waxing Technique', d:'ワックス操作・剥離防止'},
+  {id:7, type:'extension', t:'Tweezer Work', d:'かき分け・安定性'},
+  {id:8, type:'extension', t:'Glue Control', d:'適正量・硬化速度'},
+  {id:9, type:'extension', t:'Single Lash App', d:'装着フロー・方向'},
+  {id:10, type:'extension', t:'Removal & Repair', d:'オフ・リペア技術'},
+  {id:11, type:'extension', t:'Total Design', d:'似合わせ提案'}
+];
+
+// ── MANNER TRAINING DATA ──
+const TRAINING_DATA={days:[{id:"day1",title:"社会人マインドセット & 接客の土台",subtitle:"プロの心構え・第一印象・敬語の基本",description:"プロフェッショナルとしての心構えと、接客に必要な基礎スキルを学びます。",modules:[{id:"m1",title:"社会人としての心構え",lessons:[{id:"m1l1",title:"プロフェッショナルとは何か",content:"## プロフェッショナルの定義\n\n美容業界における「プロフェッショナル」とは、単に技術が優れているだけではありません。**お客様の期待を超える体験を提供し続ける人**のことです。\n\n### 3つの柱\n\n**① 技術力** — 確かな施術スキル\n技術は大前提です。しかし、技術だけでリピーターは生まれません。\n\n**② 人間力** — 信頼される人柄\nお客様は「この人にまた会いたい」と思う人のもとに戻ってきます。清潔感、気配り、誠実さ — これらは技術と同等以上の価値があります。\n\n人間力の具体例：\n- お客様の名前を覚えている\n- 前回の会話を覚えている\n- 小さな変化に気づく\n- 困っている人を見たら声をかける\n- 約束を守る、嘘をつかない\n\n**③ 仕事力** — 安定したパフォーマンス\n毎日同じクオリティを出し続ける力。体調管理、感情のコントロール、準備の徹底。\n\n### 求められるスタッフ像\n\n一人ひとりのスタッフが**プロフェッショナルとしての自覚**を持って働くことが大切です。**自分の成長に責任を持ち、主体的にキャリアを築いていく**姿勢が求められます。\n\n| 項目 | アマチュア | プロフェッショナル |\n|---|---|---|\n| 技術 | できるときもある | いつでもできる |\n| 気分 | 日によって変わる | 常に安定 |\n| ミス | 言い訳する | 改善策を出す |\n| 学び | 言われたらやる | 自分から求める |\n| 責任 | 他人のせいにする | 自分ごととして捉える |\n\n### 学びのポイント\n- 技術力だけでなく、人間力と仕事力の3つが揃って初めてプロフェッショナル\n- プロとしての自覚を持ち、主体的にキャリアを築く\n- お客様のリピートは技術以上に「人」で決まる"},{id:"m1l2",title:"時間管理と自己管理",content:"## 時間は最大の信頼指標\n\n### なぜ時間管理が重要か\n\n美容サロンでは、1分の遅れが連鎖的な問題を引き起こします。\n\n**遅刻の連鎖反応シミュレーション：**\n- 10:00 あなたが5分遅刻\n- 10:05 準備が5分遅れ、10:10開始の施術が10:15開始に\n- 11:25 施術終了が5分押す\n- 11:30 次のお客様を5分お待たせする\n→ 結果：1人の5分が、その日の店舗全体のスケジュールに波及\n\n### 出勤と準備の考え方\n\n**余裕を持った準備がプロの第一歩です。**\n\n準備の流れ（例）：\n- 着替え・手洗い・身だしなみチェック\n- 器具の準備・施術台の確認\n- 本日の予約確認・前回のカルテ確認\n\n### 体調管理もプロの仕事\n\n**報告のテンプレート：**\n「お疲れ様です。体調不良のためお休みをいただきたくご連絡いたします。\n本日の予約：〇〇時に△△様、□□時に◇◇様の計2件\nご迷惑をおかけして申し訳ございません。ご指示をお願いいたします。」\n\n**絶対にNG：**\n- 始業時間を過ぎてからの連絡\n- 連絡なしの欠勤\n\n### 感情の自己管理\n\n**感情リセットの具体的な方法：**\n- 出勤前に深呼吸3回\n- 鏡で笑顔を確認してから店舗に入る\n- ネガティブな話題をスタッフルームに持ち込まない\n- どうしても辛い時は管理者に相談する\n\n### 学びのポイント\n- 余裕を持って出勤し、準備を整える習慣をつける\n- 体調不良の連絡は早さが命\n- 感情を自分でコントロールするのもプロの仕事"},{id:"m1l3",title:"責任感と当事者意識",content:"## 「自分ごと」として捉える力\n\n### 当事者意識とは\n\n「それは私の担当じゃないので」— この一言でお客様の信頼は一瞬で崩れます。当事者意識とは、**目の前で起きていることすべてを「自分に関係がある」と捉える姿勢**です。\n\n### 具体的な場面\n\n**場面1: 電話が鳴っている**\n- ✕ 「フロント担当じゃないから」と無視する\n- ○ 手が空いていれば自分が出る\n\n**場面2: 店内にゴミが落ちている**\n- ✕ 「掃除の時間にやればいい」と通り過ぎる\n- ○ 気づいたらすぐ拾う\n\n**場面3: 他のスタッフのお客様が困っている**\n- ✕ 「あの人のお客様だから」と知らんぷり\n- ○ 「何かお手伝いできることはありますか？」と声をかける\n\n### 「言い訳」vs「改善策」\n\n| 言い訳（NG） | 改善策（OK） |\n|---|---|\n| 「忙しかったので…」 | 「次回からチェックリストを使います」 |\n| 「聞いてなかったです」 | 「メモを取る習慣をつけます」 |\n| 「前の人がやってなかったので」 | 「自分が気づいた時点で対応します」 |\n| 「教えてもらってません」 | 「わからないことは自分から聞くようにします」 |\n\n### 学びのポイント\n- 「自分の仕事じゃない」と思った瞬間が成長のチャンス\n- 言い訳の代わりに改善策を出す\n- 信頼は毎日の小さな行動で積み上がり、一瞬で崩れる"},{id:"m1l4",title:"美容業界で働く覚悟",content:"## サービス業の本質を理解する\n\n### 美容業は「人の美しさに寄り添う仕事」\n\nお客様がサロンに来る理由は様々です。共通しているのは、**お客様は「変わりたい」「維持したい」という気持ちを持って来店されている**ということ。\n\n### 体力面の覚悟\n\n- 1回の施術で60〜120分、同じ姿勢で集中\n- 1日に3〜5件の施術\n- 目を酷使するため、視力管理・眼精疲労対策が重要\n- 指先の繊細な作業が続くため、手指のストレッチを習慣に\n\n### メンタル面の覚悟\n\n- お客様から厳しい言葉をいただくこともある\n- 思い通りの仕上がりにならず悔しい思いをすることもある\n- 売上が伸び悩む時期もある\n\nこれらは**成長の過程で必ず経験すること**です。\n\n### 1年後・3年後・5年後のキャリアイメージ\n\n**1年後：** 基本的な施術を自信を持ってこなせる。リピーターが増え始める\n**3年後：** 指名客がつき、安定した売上。後輩の指導もできる\n**5年後：** 店舗のエース級。独立や店長への道も見えてくる\n\n### 学びのポイント\n- お客様の「変わりたい」気持ちに寄り添う仕事\n- 体力管理は仕事の一部\n- 辛い時期を乗り越えた先に成長がある"}],quiz:[{q:"最も重視するスタッフの資質は？",opts:["技術力のみ","人間力のみ","技術力・人間力・仕事力の3つ","売上実績のみ"],ans:2,explanation:"技術力・人間力・仕事力の3つが揃って初めてプロフェッショナルです。"},{q:"出勤時に大切な心構えは？",opts:["ギリギリに到着する","余裕を持って出勤し準備を整える","準備は始業後にする","他の人に任せる"],ans:1,explanation:"余裕を持って出勤し、落ち着いて準備を整えることが大切です。"},{q:"体調不良で休む場合の正しい対応は？",opts:["当日朝に電話→詳細は後で","早めに連絡→予約状況報告→代替案提案","始業時間に連絡→理由説明","同僚に伝言"],ans:1,explanation:"早めに連絡し、予約状況と影響範囲を報告します。"},{q:"プロフェッショナルの3つの柱に含まれないものは？",opts:["技術力","人間力","仕事力","営業力"],ans:3,explanation:"3つの柱は「技術力」「人間力」「仕事力」です。"},{q:"体調不良時の連絡で最も大切なことは？",opts:["詳しい病状の説明","できるだけ早く連絡すること","復帰日の確約","診断書の提出"],ans:1,explanation:"早めの連絡が最も大切です。"}],writtenExercises:[{q:"あなたが考える「プロフェッショナル」とはどのような人ですか？過去に出会ったプロフェッショナルな人の具体的なエピソードを1つ挙げ、200字以上で記述してください。",hint:"技術力・人間力・仕事力の3つの柱に触れながら書くと良いでしょう。"},{q:"「気分が乗らないけど予約がある朝」を想像してください。出勤してからお客様を迎えるまでに気持ちを切り替える具体的な行動を時系列で書いてください。",hint:"自分なりの感情リセット方法を「習慣」にできるか考えてみましょう。"}]},
+{id:"m2",title:"第一印象と身だしなみ",lessons:[{id:"m2l1",title:"第一印象の科学",content:"## 人は見た目で9割判断する\n\n### メラビアンの法則\n\n- **視覚情報（見た目・表情・しぐさ）：55%**\n- **聴覚情報（声のトーン・速度）：38%**\n- **言語情報（話の内容）：7%**\n\n**来店後の最初の7秒**で、お客様の「このサロンは信頼できるか」の判断がほぼ決まります。\n\n### 初頭効果とハロー効果\n\n**初頭効果：** 最初に受けた印象をなかなか変えられない\n**ハロー効果：** 1つの目立つ特徴が、他の全ての評価に影響する\n\n- 笑顔が素敵 → 「きっと技術も丁寧だろう」\n- 服がシワだらけ → 「施術も雑なんじゃないか」\n\n### アイラッシュ施術特有の距離感\n\n- まつ毛エクステ：顔から**15〜25cm**（息がかかる距離）\n- 施術時間：60〜120分、お客様は目を閉じた状態\n\nお客様は目を閉じているため、**聴覚と嗅覚が鋭敏**になっています。\n\n**特に注意すべきポイント：**\n- **口臭対策**：施術前の歯磨き・マウスウォッシュは必須\n- **鼻呼吸**：口呼吸はお客様の顔に直接息がかかる\n- **体臭対策**：制汗剤の使用、施術着のこまめな洗濯\n- **手元の清潔**：施術直前の手洗い・消毒は徹底\n\n### 学びのポイント\n- 第一印象の93%は非言語情報で決まる\n- 最初の7秒で信頼の土台が決まる\n- ハロー効果：1つの良い印象が全体の評価を引き上げる"},{id:"m2l2",title:"身だしなみの基準",content:"## スタッフの身だしなみ\n\n### 「おしゃれ」と「身だしなみ」の違い\n\n| | おしゃれ | 身だしなみ |\n|---|---|---|\n| 基準 | 自分の好み | 相手からの見え方 |\n| 目的 | 自己表現 | 信頼感の構築 |\n| 判断 | 自分がどう思うか | お客様がどう感じるか |\n\n### 出勤前の5点チェック\n\n1. **全身** — シワ・汚れ・ほつれ\n2. **髪** — 寝ぐせ・乱れ\n3. **顔** — メイク・清潔感\n4. **手元** — 爪・手荒れ・アクセサリー\n5. **匂い** — 歯磨き・制汗\n\n### 学びのポイント\n- おしゃれ ≠ 身だしなみ。基準は「お客様がどう感じるか」\n- 手元・匂いは特に重要\n- 出勤前の5点チェックを毎日の儀式にする"},{id:"m2l3",title:"表情・姿勢・立ち居振る舞い",content:"## 無言でも伝わるメッセージ\n\n### 表情\n\n**自然な笑顔のポイント：**\n- 口角を上げるだけでなく目元も柔らかく\n- 「この方に会えて嬉しい」と心の中で思う\n- 施術中も穏やかな表情を保つ\n\n### 姿勢\n\n**立ち姿勢：** 背筋を伸ばす / 肩の力を抜く / 猫背NG\n**座り姿勢：** 背もたれに寄りかからない / 足を組まない\n\n### 動作のルール\n\n- 店内を走らない\n- ドアの開閉は静かに\n- 物を渡す時は両手で\n- 指差しではなく手のひらで方向を示す\n- お客様の前を横切る時は「前を失礼します」\n\n### 学びのポイント\n- 笑顔は「心」から。トレーニングで自然にできる\n- 姿勢は常に意識。猫背は信頼感を損なう\n- 全ての動作に「丁寧さ」を"}],quiz:[{q:"メラビアンの法則で印象形成に最も影響するのは？",opts:["話の内容","声のトーン","見た目・表情・しぐさ","すべて均等"],ans:2,explanation:"視覚情報が55%と最も大きな割合です。"},{q:"第一印象が決まるのは来店後およそ何秒？",opts:["3秒","7秒","30秒","1分"],ans:1,explanation:"最初の7秒で信頼の判断がほぼ決まります。"},{q:"「ハロー効果」とは？",opts:["最初の印象が持続","1つの特徴が他の全評価に影響","笑顔が好印象","清潔感が重要"],ans:1,explanation:"1つの特徴が他の評価に波及する現象です。"},{q:"香水を控えるべき主な理由は？",opts:["コスト","スタッフ配慮","お客様との距離が近い","ルール"],ans:2,explanation:"顔から20〜30cmの距離で施術します。"}],writtenExercises:[{q:"初めてのお店に入った時、最初の数秒間で何を見て「良さそう」「微妙」と判断していますか？5つ以上のチェックポイントと理由を記述してください。",hint:"自分がお客様の立場で感じたことを掘り下げましょう。"}]},
+{id:"m3",title:"敬語と言葉遣いの基本",lessons:[{id:"m3l1",title:"敬語の3分類と実践フレーズ",content:"## 敬語を正しく使い分ける\n\n### 3種類の敬語\n\n**① 尊敬語** — お客様の動作を高める\n**② 謙譲語** — 自分の動作をへりくだらせる\n**③ 丁寧語** — 文末を丁寧にする\n\n### よくある間違いと正しい表現\n\n| ✕ 間違い | ○ 正しい | 理由 |\n|---|---|---|\n| お名前を頂戴できますか | お名前をお伺いしてもよろしいですか | 名前は「もらう」ものではない |\n| 了解しました | 承知いたしました | 「了解」は目上に使わない |\n| なるほどですね | おっしゃる通りです | カジュアルすぎる |\n| ちょっと待ってください | 少々お待ちいただけますか | 「ちょっと」はカジュアル |\n| 〜になります | 〜でございます | 「なる」は変化の言葉 |\n\n### 学びのポイント\n- 「了解しました」ではなく「承知いたしました」\n- 二重敬語は逆に不自然\n- 音読トレーニングで体に染み込ませる"},{id:"m3l2",title:"NGワード・クッション言葉・電話対応",content:"## 使ってはいけない言葉 / 使うべき言葉\n\n### NGワード\n\n**曖昧系：** 「一応」「多分」「〜だと思います」\n**カジュアル系：** 「私的には」「マジですか」「ヤバい」\n**否定系：** 「できません」→「〜であれば可能です」\n\n### クッション言葉\n\n**依頼時：** 恐れ入りますが / お手数おかけしますが\n**断る時：** あいにくですが / 申し訳ございませんが\n**確認時：** 差し支えなければ / もしよろしければ\n\n### 電話対応\n\n**取る時：** 「お電話ありがとうございます。○○でございます。」\n**保留：** 30秒以内。超えるなら折り返し\n**切る時：** お客様が切ってから\n\n### 学びのポイント\n- 曖昧な言葉は不安を、カジュアルな言葉は不信感を与える\n- 否定文は代替案とセットで\n- クッション言葉は反射的に出るまで練習"},{id:"m3l3",title:"場面別の敬語フレーズ集",content:"## サロンワークで使う敬語を場面ごとにマスターする\n\n### 来店時\n\n| 場面 | NG表現 | OK表現 |\n|---|---|---|\n| お出迎え | 「いらっしゃい」 | 「いらっしゃいませ。ご予約の〇〇様でいらっしゃいますか」 |\n| 名前確認 | 「お名前は？」 | 「恐れ入りますが、お名前をお伺いしてもよろしいですか」 |\n| 案内 | 「こっちです」 | 「こちらへどうぞ。お席にご案内いたします」 |\n\n### 施術中\n\n| 場面 | NG表現 | OK表現 |\n|---|---|---|\n| 体調確認 | 「大丈夫？」 | 「お加減はいかがですか？」 |\n| 姿勢変更 | 「ちょっと横向いて」 | 「恐れ入りますが、少しお顔を右にお向けいただけますか」 |\n| 温度確認 | 「暑くない？」 | 「室温は快適でいらっしゃいますか？」 |\n\n### 仕上げ・お会計・お見送り\n\n| 場面 | NG表現 | OK表現 |\n|---|---|---|\n| 仕上がり確認 | 「どう？」 | 「仕上がりはいかがでしょうか。気になる点はございますか」 |\n| 会計 | 「〇〇円ね」 | 「本日のお会計は〇〇円でございます」 |\n| 見送り | 「またね〜」 | 「ありがとうございました。またのお越しをお待ちしております」 |\n\n### 学びのポイント\n- 場面ごとに定型フレーズを「型」として身につける\n- 「無意識フレーズ」は自分では気づきにくい\n- 全員に安心感を与えるレベルを目指す"},{id:"m3l4",title:"対スタッフ・対上司の敬語と言葉遣い",content:"## 社内でも言葉遣いは見られている\n\n### なぜ社内の言葉遣いが重要か\n\n**理由1：お客様に聞こえている**\nスタッフ同士の会話は、思っている以上にお客様の耳に届いています。\n\n**理由2：チーム内の人間関係に直結**\n「言い方」ひとつで、信頼を築くことも壊すこともできます。\n\n### 対先輩スタッフの基本フレーズ\n\n| 場面 | NG表現 | OK表現 |\n|---|---|---|\n| 質問する | 「これどうやるの？」 | 「恐れ入りますが、〇〇の手順を教えていただけますか」 |\n| お礼 | 「ありがとう」 | 「ありがとうございます。大変勉強になります」 |\n| 依頼する | 「これやっといて」 | 「お手数ですが、〇〇をお願いできますでしょうか」 |\n\n### 対管理者の基本フレーズ\n\n| 場面 | NG表現 | OK表現 |\n|---|---|---|\n| 報告 | 「〇〇でした」 | 「〇〇の件、ご報告いたします。結論から申し上げますと…」 |\n| 相談 | 「どうしたらいいですか」 | 「〇〇について相談させてください。私としてはAが良いと考えております」 |\n| 指示を受ける | 「はいはい」 | 「承知いたしました。〇〇までに対応いたします」 |\n\n### 学びのポイント\n- 社内の言葉遣い = お客様への姿勢の表れ\n- チャットツールは文字が残る。一度送ったら消せない意識で\n- 不満は愚痴ではなく、正規ルートで改善提案として伝える"},{id:"m3l5",title:"敬語の落とし穴と自己チェック",content:"## 「使えているつもり」が一番危ない\n\n### 二重敬語\n\n| ✕ 二重敬語 | ○ 正しい敬語 |\n|---|---|\n| おっしゃられました | おっしゃいました |\n| ご覧になられますか | ご覧になりますか |\n| お越しになられました | お越しになりました |\n\n### 「させていただく」の乱用\n\n**判断基準：** 「相手の許可」と「自分の恩恵」の2条件が揃う場合のみ使う\n\n- ✕ 「担当させていただいております田中です」→ ○ 「担当の田中でございます」\n- ✕ 「ご説明させていただきます」→ ○ 「ご説明いたします」\n\n### 美容サロン特有の敬語トラブル\n\n**① お客様の容姿に関する言葉遣い**\n- ✕ 「まつ毛少ないですね」\n- ○ 「まつ毛が繊細でいらっしゃいますね」\n→ ネガティブワードは絶対禁止。ポジティブに言い換える\n\n**② 施術中の独り言**\n- ✕ 「あ、取れちゃった」「んー、難しいな」\n→ お客様は20〜30cmの距離で聞いている。不安を与える独り言は厳禁\n\n### 学びのポイント\n- 二重敬語は「丁寧」ではなく「不自然」\n- 「させていただく」は2条件で判断\n- 毎週のセルフチェックで継続的に改善"}],quiz:[{q:"「了解しました」の正しい言い換えは？",opts:["わかりました","承知いたしました","OKです","了承です"],ans:1,explanation:"「承知いたしました」が正しい敬語です。"},{q:"できないことを伝える正しい方法は？",opts:["「できません」","「無理です」","「あいにく難しいのですが、〜という方法もございます」","別スタッフに任せる"],ans:2,explanation:"クッション言葉＋代替案の提示が基本です。"},{q:"電話の保留は原則何秒以内？",opts:["10秒","30秒","1分","2分"],ans:1,explanation:"30秒以内。超える場合は折り返し。"},{q:"「おっしゃられました」が不適切な理由は？",opts:["意味が通じないから","カジュアルすぎるから","二重敬語だから","謙譲語だから"],ans:2,explanation:"「おっしゃる」+「られる」で二重敬語です。"},{q:"「お客様が参られました」の正しい表現は？",opts:["「お客様が来ました」","「お客様がいらっしゃいました」","「お客様が参りました」","「お客様が来られました」"],ans:1,explanation:"「参る」は謙譲語。お客様には尊敬語「いらっしゃる」を使います。"}],writtenExercises:[{q:"以下のNGフレーズを正しい敬語に書き換えてください。\n①「すみません、ちょっとわかんないんで、一応確認してきます」\n②「前回と同じ感じでいいですか？」\n③「今日めっちゃ混んでて、待ち時間ヤバいかもです」",hint:"クッション言葉を活用し、各文の問題点を分析してから書き換えてください。"}]}]},
+{id:"day2",title:"対お客様マナー 実践編",subtitle:"来店〜退店フロー・カウンセリング・クレーム対応",description:"来店から退店まで、実際のサロンワークで求められる接客スキルを体系的に学びます。",modules:[{id:"m4",title:"来店〜退店の接客フロー",lessons:[{id:"m4l1",title:"お出迎え〜着席まで",content:"## 第一印象を決める最初の2分\n\n### お出迎えの完全フロー\n\n**Step 1:** 来店の気配を感じたら、手元の作業を止め、立ち上がって笑顔で「いらっしゃいませ」\n**Step 2:** 「ご予約の〇〇様でいらっしゃいますか？」\n**Step 3:** 「お荷物とお上着をお預かりいたします」\n**Step 4:** 「お席にご案内いたします。こちらへどうぞ」\n**Step 5:** 「温度は大丈夫ですか？お飲み物はいかがですか？」\n\n**待たせる場合：** 待ち時間の目安を必ず伝える\n\n### 学びのポイント\n- 立ち上がって出迎える\n- お名前を間違えない\n- 待ち時間は目安を伝えてストレス軽減"},{id:"m4l2",title:"カウンセリング〜施術中",content:"## お客様の要望を正確に引き出す\n\n### カウンセリングの5ステップ\n\n**①** 前回の確認（リピーター）\n**②** 今回の希望を聞く\n**③** 提案する（複数選択肢）\n**④** 料金の事前説明（必ず施術前に）\n**⑤** 同意の確認\n\n### 聞く7割・話す3割\n\n### 施術中の5ルール\n1. スマホを触らない\n2. 飲食しない\n3. 私語禁止\n4. 姿勢を崩さない\n5. 時間を意識する\n\n### 学びのポイント\n- 料金は必ず施術前に説明\n- 会話量はお客様のサインを読んで調整\n- 5つのルールを守り抜く"},{id:"m4l3",title:"仕上げ確認〜お見送り",content:"## 最後の印象が「また来たい」を決める\n\n### ピークエンドの法則\n\n人は**「一番感情が動いた瞬間」と「最後の瞬間」**で体験を評価します。\n\n### 仕上げ〜退店フロー\n\n**仕上げ確認：** 正面・横・斜めから確認\n**アフターケア説明：** 施術後の注意事項を丁寧に\n**次回提案：** 断られたら粘らない\n**お見送り：** 出口まで付き添い → 姿が見えなくなるまで見送る\n\n### 「覚えている」の威力\n\n前回の会話を覚えていること = 最大のリピート要因\n→ **カルテに会話メモを残す習慣を**\n\n### 学びのポイント\n- ピークエンドの法則：最後が全体評価に直結\n- 次回予約は一度断られたら引く\n- 「覚えている」をカルテで仕組み化"}],quiz:[{q:"カウンセリングの理想比率は？",opts:["5:5","7:3（聞く:話す）","3:7","9:1"],ans:1,explanation:"聞く7割、話す3割が理想です。"},{q:"料金説明はいつ？",opts:["施術後","施術中","施術前","次回来店時"],ans:2,explanation:"必ず施術前に。"},{q:"ピークエンドの法則が示すことは？",opts:["最初が全て","途中が最重要","ピーク時と最後で評価","価格が満足度を決める"],ans:2,explanation:"ピークとエンドで全体を評価します。"}],writtenExercises:[{q:"初来店のお客様へのカウンセリングを会話形式で書いてください。料金説明・アレルギー確認まで含めて。",hint:"オープン→クローズドの質問の流れがポイントです。"}]},{id:"m5",title:"提案スキルとリピート戦略",lessons:[{id:"m5l1",title:"ニーズの深掘りと提案",content:"## 言葉にできない要望を読み取る\n\n### 表面ニーズ vs 深層ニーズ\n\n| お客様の言葉 | 本当のニーズ |\n|---|---|\n| 「自然な感じで」 | やりすぎに見られたくない |\n| 「前と同じで」 | 失敗したくない |\n| 「おまかせで」 | よくわからないから導いてほしい |\n| 「持ちがいいの」 | 来店頻度を抑えたい / 予算重視 |\n\n### 提案の3原則\n1. お客様の希望に沿った提案\n2. 複数の選択肢を提示（最低2つ）\n3. 決定はお客様に委ねる\n\n### 学びのポイント\n- 言葉の裏の深層ニーズを読む\n- 「覚えている」が最大のリピート要因"}],quiz:[{q:"「おまかせで」の深層ニーズは？",opts:["何でもいい","安い方がいい","導いてほしい","急いでいる"],ans:2,explanation:"「導いてほしい」という気持ちです。"},{q:"提案の選択肢は最低いくつ？",opts:["1つ","2つ","4つ","5つ"],ans:1,explanation:"最低2つ。1つだけは押し売り感が出ます。"}],writtenExercises:[]},{id:"m6",title:"クレーム・トラブル対応",lessons:[{id:"m6l1",title:"クレーム初動の3ステップ",content:"## 最初の30秒が全てを決める\n\n### Step 1: 受け止める\n「ご不快な思いをさせてしまい、大変申し訳ございません」\n→ まず謝罪。言い訳・反論は絶対にしない\n\n### Step 2: 確認する\n「詳しくお聞かせいただけますか？」\n→ 話を遮らない。メモを取る\n\n### Step 3: エスカレーション\n「確認いたしますので、少々お待ちいただけますか」\n→ 管理者に即連絡\n\n### 絶対禁止\n1. 自己判断で値引き・やり直しを約束\n2. 「でも」で反論\n3. 他スタッフのせいにする\n\n### サービスリカバリーパラドックス\n\nクレームを適切に対応した場合、**問題がなかった場合より満足度が上がる**ことがある。\n\n### 学びのポイント\n- 新人は「傾聴とエスカレーション」が役割\n- 値引き約束は絶対禁止\n- クレームは対応次第でファンを生む機会"}],quiz:[{q:"クレーム対応の最初のステップは？",opts:["原因説明","謝罪と共感","解決策提案","管理者を呼ぶ"],ans:1,explanation:"まず「謝罪と共感」から。"},{q:"新人のクレーム対応で最重要な役割は？",opts:["自分で解決","傾聴とエスカレーション","値引き提案","スタッフ交代"],ans:1,explanation:"傾聴とエスカレーションが役割です。"}],writtenExercises:[{q:"施術から5日後にお客様から電話：「エクステが半分取れた。お金返して」。あなたは新人です。対応を時系列で書いてください。",hint:"クレーム初動3ステップと権限範囲を意識。"}]}]},
+{id:"day3",title:"対スタッフ・対上司 & 総合演習",subtitle:"チームワーク・報連相・総合シナリオ",description:"同僚・管理者との関係構築マナーと、全3日間の学びを統合する演習に取り組みます。",modules:[{id:"m7",title:"対スタッフ（同僚）マナー",lessons:[{id:"m7l1",title:"日常コミュニケーションと業務連携",content:"## チームワークの土台\n\n### 挨拶は全ての基本\n\n**出勤：** 「おはようございます」（全員に聞こえるように）\n**退勤：** 「お先に失礼します。お疲れ様でした」\n\n### お客様の前での禁止事項\n- スタッフ同士の注意・指摘\n- プライベートの話\n- 内輪ネタ\n\n### 業務連携ルール\n- 共有物は元に戻す\n- 消耗品の残量は自分から報告\n- 予約の押しは後続スタッフに即報告\n- 引き継ぎはカルテに記録\n- 予約設定は管理者の承諾なく変更禁止\n\n### 学びのポイント\n- 不満は陰口でなく管理者へ\n- 引き継ぎは口頭でなくカルテに記録"},{id:"m7l2",title:"業務委託スタッフとしての距離感",content:"## 同僚でありながら独立した事業者\n\n### 適切な距離感\n**配慮が必要な話題：** 個人の報酬・売上に関する話題はデリケート\n**尊重：** 技術スタイル / 接客スタイル / 働く日数\n\n### シフト変更は管理者を通す\n\n### 学びのポイント\n- 業務委託 = 独立した事業者\n- 報酬・売上の話題に触れない\n- シフト変更は管理者を通す"}],quiz:[{q:"施術中スタッフに急ぎの連絡をする方法は？",opts:["大声で呼ぶ","メモ/チャット","直接話す","後で伝える"],ans:1,explanation:"メモやチャットで対応します。"},{q:"シフト交代の正しい方法は？",opts:["直接頼む","LINE","管理者を通す","勝手に交代"],ans:2,explanation:"管理者を通します。"},{q:"触れてはいけない話題は？",opts:["天気","報酬額・売上","趣味","施術テクニック"],ans:1,explanation:"報酬・売上は個人情報です。"}],writtenExercises:[]},{id:"m8",title:"対上司（管理者）マナー",lessons:[{id:"m8l1",title:"報連相の型",content:"## 管理者が求めるコミュニケーション\n\n### 管理者が最も困ること = 情報が来ないこと\n\n### 報告・連絡・相談\n**報告：** 結果を伝える（完了後すぐ）\n**連絡：** 事実を共有（気づいた時すぐ）\n**相談：** 判断を仰ぐ（権限を超える時）\n\n### 報告テンプレート\n「お疲れ様です。〇〇の件、ご報告です。\n【結論】△△となりました。\n【経緯】□□のため、◇◇しました。\n【備考】◇◇の対応が必要です」\n\n### 相談テンプレート\n「【状況】△△が発生\n【選択肢A】□□→メリット/デメリット\n【選択肢B】□□→メリット/デメリット\n【私の考え】Aが良いと思います」\n\n### 学びのポイント\n- 報告は結論から、相談は選択肢つき\n- 記録を残す"},{id:"m8l2",title:"指示・フィードバック・ミス報告",content:"## 素直さ × 主体性\n\n### 指示の受け方 4ステップ\n1. 最後まで聞く\n2. 復唱確認\n3. 不明点をその場で確認\n4. 期限と優先度の確認\n\n### フィードバックの受け方\n- 言い訳から入らない\n- 「気をつけます」で終わらせない → 「次回から〇〇します」\n\n### ミス報告\n\n**ミスの大きさより報告の遅さが問題**\n\n**第一報テンプレート：**\n「【緊急】〇〇の件\n【何が起きたか】△△発生\n【現在の状況】□□\n【お客様への影響】◇◇\n【取り急ぎの対応】◇◇しています」\n\n### 学びのポイント\n- フィードバック = 成長への期待\n- 隠すのが最大のNG\n- 再発防止策を自分から出す"}],quiz:[{q:"相談の正しい方法は？",opts:["丸投げ","選択肢つき","自分で決める","同僚に聞く"],ans:1,explanation:"選択肢つきで判断を仰ぎます。"},{q:"フィードバックの最初の一言は？",opts:["でも…","承知しました。ありがとうございます","他の人もやってます","気をつけます"],ans:1,explanation:"まず受け止めることが重要です。"},{q:"ミス時に最もNGなのは？",opts:["すぐ報告","隠す","メモ","再発防止策"],ans:1,explanation:"隠すのが最大のNGです。"}],writtenExercises:[{q:"管理者から「お見送りが雑になっている」と指摘を受けました。①その場の返答、②具体的改善計画、③1週間後の改善報告文を書いてください。",hint:"「気をつけます」で終わらせない具体策を考えてください。"}]},{id:"m9",title:"総合シナリオ演習",lessons:[{id:"m9l1",title:"シナリオ演習",content:"## 3日間の学びを統合する\n\n### 全体像\n\n**STEP 1：** プロの3つの柱 / 時間管理 / 当事者意識 / 第一印象 / 敬語\n**STEP 2：** 来店〜退店 / カウンセリング / 提案・リピート / クレーム対応\n**STEP 3：** 同僚マナー / 業務委託の距離感 / 報連相 / ミス報告\n\nすべてを総動員して演習に挑んでください。"}],quiz:[{q:"【シナリオ】前のスタッフの施術台が汚れたまま。あと10分で来客。正しい対応は？",opts:["前スタッフに文句","お客様の前で愚痴","自分で清掃→後で報告","汚れたまま施術"],ans:2,explanation:"当事者意識を持ち対応。"},{q:"【シナリオ】先輩が「予約設定、自分で変えていいよ」と。正しい対応は？",opts:["先輩に従う","自分で変更","「管理者承諾が必要なので確認します」","無視"],ans:2,explanation:"管理者の事前承諾が必要。"},{q:"【シナリオ】管理者から厳しいフィードバック。正しい対応は？",opts:["その場で反論","受け止め→後で改善策を伝える","黙って態度を変える","同僚に愚痴"],ans:1,explanation:"まず受け止め、冷静に改善策を。"},{q:"【シナリオ】ミスでグルーが肌に少量付着。客は気づいていない。正しい対応は？",opts:["そのまま続行","正直に伝え対処→管理者報告","こっそり拭く","パニック停止"],ans:1,explanation:"隠すのが最大のNG。"},{q:"【シナリオ】退勤前、明日初来店の客カルテにアレルギー記載。明日の担当は別。正しい対応は？",opts:["担当にLINE","管理者に報告","明日伝える","カルテにあるから大丈夫"],ans:1,explanation:"安全に関わる情報は即管理者を通して共有。"}],writtenExercises:[{q:"3日間の研修で最も印象に残った学びを3つ挙げ、「なぜ印象に残ったか」「明日からどう活かすか」を600字以上で書いてください。",hint:"抽象的な感想ではなく具体的な行動レベルで。"}]}]}]};
+
+// ── PROGRESS HELPERS ──
+const allLessons = [];
+const allModuleIds = [];
+TRAINING_DATA.days.forEach(d => d.modules.forEach(m => { allModuleIds.push(m.id); m.lessons.forEach(l => allLessons.push(l.id)); }));
+
+// ── SHARED COMPONENTS ──
+const ProgressBar = ({ current, total, label, variant = "default" }) => {
+  const pct = total > 0 ? Math.round((current / total) * 100) : 0;
+  const bg = variant === "gold" ? "rgba(201,145,138,0.2)" : "rgba(91,14,45,0.08)";
+  const fill = variant === "gold" ? "linear-gradient(90deg, #C9918A, #A06B62)" : "linear-gradient(90deg, #C9918A, #5B0E2D)";
+  return (<div className="w-full">{label && <div className="flex justify-between mb-1.5" style={{ fontSize: 11, letterSpacing: "0.05em", color: "#5B0E2D" }}><span style={{ fontWeight: 500 }}>{label}</span><span style={{ fontWeight: 600 }}>{pct}%</span></div>}<div className="w-full rounded-full overflow-hidden" style={{ height: 5, backgroundColor: bg }}><div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: fill }} /></div></div>);
+};
+
+const MarkdownLite = ({ text }) => {
+  const lines = text.split("\n");
+  const elements = [];
+  let inTable = false, tableRows = [];
+  const renderInline = (s) => { const parts = []; const re = /\*\*(.+?)\*\*/g; let last = 0, m; while ((m = re.exec(s)) !== null) { if (m.index > last) parts.push(<span key={last}>{s.slice(last, m.index)}</span>); parts.push(<strong key={m.index} style={{ color: "#5B0E2D", fontWeight: 600 }}>{m[1]}</strong>); last = re.lastIndex; } if (last < s.length) parts.push(<span key={last}>{s.slice(last)}</span>); return parts.length ? parts : s; };
+  const flushTable = () => { if (tableRows.length < 2) return null; const h = tableRows[0].split("|").filter(c => c.trim()); const b = tableRows.slice(2).map(r => r.split("|").filter(c => c.trim())); const t = (<div key={`t${elements.length}`} className="overflow-x-auto my-4"><table className="w-full text-sm" style={{ borderCollapse: "collapse" }}><thead><tr>{h.map((c, i) => <th key={i} className="text-left p-2.5" style={{ borderBottom: "2px solid #C9918A", color: "#5B0E2D", fontWeight: 600, fontSize: 12 }}>{renderInline(c.trim())}</th>)}</tr></thead><tbody>{b.map((row, ri) => <tr key={ri} style={{ borderBottom: "1px solid rgba(201,145,138,0.15)" }}>{row.map((cell, ci) => <td key={ci} className="p-2.5" style={{ fontSize: 13 }}>{renderInline(cell.trim())}</td>)}</tr>)}</tbody></table></div>); tableRows = []; inTable = false; return t; };
+  for (let i = 0; i < lines.length; i++) { const l = lines[i]; if (l.includes("|") && (l.trim().startsWith("|") || l.includes("---|"))) { if (!inTable) inTable = true; tableRows.push(l); if (i === lines.length - 1 || !(lines[i+1] && lines[i+1].includes("|"))) { const t = flushTable(); if (t) elements.push(t); } continue; } if (inTable) { const t = flushTable(); if (t) elements.push(t); }
+    if (l.startsWith("## ")) elements.push(<h2 key={i} className="mt-8 mb-3" style={{ fontSize: 20, fontWeight: 700, color: "#5B0E2D", fontFamily: "'Cormorant Garamond', serif" }}>{l.slice(3)}</h2>);
+    else if (l.startsWith("### ")) elements.push(<h3 key={i} className="mt-5 mb-2" style={{ fontSize: 15, fontWeight: 600, color: "#7C3F58" }}>{renderInline(l.slice(4))}</h3>);
+    else if (l.startsWith("- ✕") || l.startsWith("✕")) elements.push(<div key={i} className="flex items-start gap-2.5 ml-2 my-1.5"><span style={{ color: "#B91C1C", fontWeight: 600, fontSize: 12, marginTop: 2 }}>✕</span><span style={{ fontSize: 13, lineHeight: 1.7 }}>{renderInline(l.replace(/^[-✕✗]\s*/, ""))}</span></div>);
+    else if (l.startsWith("- ○") || l.startsWith("○")) elements.push(<div key={i} className="flex items-start gap-2.5 ml-2 my-1.5"><span style={{ color: "#047857", fontWeight: 600, fontSize: 12, marginTop: 2 }}>○</span><span style={{ fontSize: 13, lineHeight: 1.7 }}>{renderInline(l.replace(/^[-○]\s*/, ""))}</span></div>);
+    else if (l.startsWith("- ")) elements.push(<div key={i} className="flex items-start gap-2.5 ml-2 my-1.5"><span style={{ color: "#C9918A", fontSize: 8, marginTop: 6 }}>●</span><span style={{ fontSize: 13, lineHeight: 1.7 }}>{renderInline(l.slice(2))}</span></div>);
+    else if (l.startsWith("→")) elements.push(<div key={i} className="ml-6 my-1" style={{ fontSize: 12, fontStyle: "italic", color: "#7C3F58" }}>{renderInline(l)}</div>);
+    else if (l.trim() === "") elements.push(<div key={i} style={{ height: 6 }} />);
+    else elements.push(<p key={i} style={{ fontSize: 13.5, lineHeight: 1.85, color: "#2D2D2D", margin: "3px 0" }}>{renderInline(l)}</p>);
+  }
+  if (inTable) { const t = flushTable(); if (t) elements.push(t); }
+  return <div>{elements}</div>;
+};
+
+const WrittenExercise = ({ exercise, index, value, onChange, revealed, onReveal }) => (
+  <div className="mb-6 p-5 rounded-2xl" style={{ backgroundColor: "#FDFBF9", border: "1px solid rgba(201,145,138,0.25)" }}>
+    <div className="flex items-center gap-2 mb-3"><div className="w-5 h-5" style={{ color: "#5B0E2D" }}>{Icons.pen}</div><span style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", color: "#5B0E2D", textTransform: "uppercase" }}>Written Exercise {index + 1}</span></div>
+    <div className="mb-3 whitespace-pre-wrap" style={{ fontSize: 13.5, lineHeight: 1.8, color: "#2D2D2D" }}>{exercise.q}</div>
+    <textarea value={value || ""} onChange={e => onChange(e.target.value)} placeholder="ここに回答を記述してください…" rows={8} className="w-full p-4 rounded-xl text-sm resize-y transition-all focus:outline-none" style={{ border: "1px solid rgba(201,145,138,0.3)", backgroundColor: "#fff", fontSize: 13.5, lineHeight: 1.8, fontFamily: "'DM Sans', 'Noto Sans JP', sans-serif" }} />
+    <div className="mt-2.5 flex items-center justify-between"><span style={{ fontSize: 11, color: "#999" }}>{(value || "").length} characters</span><button onClick={onReveal} className="px-3 py-1.5 rounded-lg" style={{ fontSize: 11, fontWeight: 600, backgroundColor: revealed ? "rgba(4,120,87,0.08)" : "rgba(201,145,138,0.1)", color: revealed ? "#047857" : "#5B0E2D", border: `1px solid ${revealed ? "rgba(4,120,87,0.2)" : "rgba(201,145,138,0.2)"}` }}>{revealed ? "CLOSE HINT" : "VIEW HINT"}</button></div>
+    {revealed && <div className="mt-3 p-3 rounded-xl" style={{ backgroundColor: "rgba(253,230,138,0.15)", border: "1px solid rgba(253,230,138,0.4)", fontSize: 12, color: "#78350F", lineHeight: 1.7 }}><strong>Hint:</strong> {exercise.hint}</div>}
+  </div>
+);
+
+// ── TECH LESSON MODAL (②から統合) ──
+const TechLessonModal = ({ lessonId, onClose }) => {
+  const [quizAnswers, setQuizAnswers] = useState({});
+  const [quizSubmitted, setQuizSubmitted] = useState(false);
+  if (!lessonId) return null;
+  const data = TECH_LESSON_DATA[lessonId];
+  if (!data) return null;
+  const catColor = data.category.includes("Perm") ? "#E07A88" : data.category.includes("Extension") ? "#9A75D6" : "#8C7B72";
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)" }} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="p-5 flex justify-between items-center" style={{ borderBottom: "1px solid rgba(201,145,138,0.15)" }}>
+          <div><span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.15em", color: catColor, textTransform: "uppercase" }}>{data.category}</span><h3 style={{ fontSize: 18, fontWeight: 700, color: "#1A1A1A" }}>{data.title}</h3></div>
+          <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: "rgba(201,145,138,0.08)" }}><span style={{ fontSize: 16, color: "#999" }}>✕</span></button>
+        </div>
+        <div className="flex-1 overflow-y-auto" style={{ backgroundColor: "#FAF6F1" }}>
+          <div className="max-w-3xl mx-auto p-6 space-y-6">
+            {data.sections.map((sec, si) => (
+              <div key={si} className="bg-white p-6 rounded-2xl" style={{ border: "1px solid rgba(201,145,138,0.12)" }}>
+                <h4 style={{ fontSize: 16, fontWeight: 700, color: "#5B0E2D", marginBottom: 12 }}>{sec.title}</h4>
+                <div dangerouslySetInnerHTML={{ __html: sec.content }} />
+                {sec.proTip && <div className="mt-4 p-4 rounded-xl" style={{ backgroundColor: "rgba(4,120,87,0.04)", border: "1px solid rgba(4,120,87,0.15)" }}><div style={{ fontSize: 10, fontWeight: 700, color: "#047857", letterSpacing: "0.1em", marginBottom: 4 }}>PRO ADVICE</div><div style={{ fontSize: 13, color: "#14532D", fontStyle: "italic", lineHeight: 1.7 }}>{sec.proTip}</div></div>}
+              </div>
+            ))}
+          </div>
+          <div className="p-6" style={{ backgroundColor: "rgba(201,145,138,0.06)", borderTop: "1px solid rgba(201,145,138,0.15)" }}>
+            <h4 className="text-center mb-6" style={{ fontSize: 16, fontWeight: 700, color: "#5B0E2D" }}>PRO理解度チェック</h4>
+            <div className="max-w-2xl mx-auto space-y-6">
+              {data.quiz.map((q, qi) => {
+                const selected = quizAnswers[qi];
+                const isCorrect = selected === q.ans;
+                return (
+                  <div key={qi} className="bg-white p-5 rounded-2xl" style={{ border: "1px solid rgba(201,145,138,0.12)" }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: "#1A1A1A", marginBottom: 12 }}>Q{qi+1}. {q.q}</div>
+                    <div className="space-y-2">
+                      {q.opts.map((opt, oi) => {
+                        const isSel = selected === oi;
+                        const showOk = quizSubmitted && oi === q.ans;
+                        const showBad = quizSubmitted && isSel && !isCorrect;
+                        return (<button key={oi} onClick={() => !quizSubmitted && setQuizAnswers(p => ({...p, [qi]: oi}))} className="w-full text-left p-3 rounded-xl" style={{ fontSize: 13, border: `1.5px solid ${showOk ? "#047857" : showBad ? "#B91C1C" : isSel ? "#C9918A" : "rgba(201,145,138,0.15)"}`, backgroundColor: showOk ? "rgba(4,120,87,0.04)" : showBad ? "rgba(185,28,28,0.04)" : isSel ? "rgba(201,145,138,0.06)" : "#fff", cursor: quizSubmitted ? "default" : "pointer" }}><span style={{ fontWeight: 600, marginRight: 8, color: showOk ? "#047857" : showBad ? "#B91C1C" : "#bbb" }}>{String.fromCharCode(65 + oi)}</span>{opt}</button>);
+                      })}
+                    </div>
+                    {quizSubmitted && <div className="mt-3 p-3 rounded-xl" style={{ fontSize: 12, lineHeight: 1.7, backgroundColor: isCorrect ? "rgba(4,120,87,0.04)" : "rgba(185,28,28,0.04)", color: isCorrect ? "#047857" : "#B91C1C" }}>{isCorrect ? "Correct" : "Incorrect"} — {q.exp}</div>}
+                  </div>
+                );
+              })}
+              {!quizSubmitted && <button onClick={() => setQuizSubmitted(true)} className="w-full py-3 rounded-xl font-semibold text-white" style={{ fontSize: 13, background: "linear-gradient(135deg, #5B0E2D 0%, #8C3F5C 100%)" }}>回答を確認する</button>}
+            </div>
+          </div>
+        </div>
+        <div className="p-4 flex justify-end" style={{ borderTop: "1px solid rgba(201,145,138,0.15)" }}>
+          <button onClick={onClose} className="px-5 py-2.5 rounded-xl" style={{ fontSize: 13, fontWeight: 600, color: "#5B0E2D", border: "1.5px solid rgba(201,145,138,0.3)" }}>閉じる</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const getUrlParam = (key) => new URLSearchParams(window.location.search).get(key);
+
+// ── MAIN APP ──
+function App() {
+  const [traineeId, setTraineeId] = useState(() => getUrlParam("id") || "");
+  const [mode, setMode] = useState(() => getUrlParam("id") ? "trainee" : "admin");
+  const [done, setDone] = useState({});
+  const [qDone, setQDone] = useState({});
+  const [qAns, setQAns] = useState({});
+  const [qSub, setQSub] = useState({});
+  const [wAns, setWAns] = useState({});
+  const [hints, setHints] = useState({});
+  const [view, setView] = useState(() => getUrlParam("id") ? { t: "home" } : { t: "dashboard" });
+  const [tab, setTab] = useState("lessons");
+  const [traineeName, setTraineeName] = useState("");
+  const [dashData, setDashData] = useState(null);
+  const [dashLoading, setDashLoading] = useState(false);
+  const [syncStatus, setSyncStatus] = useState("");
+  const [traineeList, setTraineeList] = useState([]);
+  const [registerError, setRegisterError] = useState("");
+  const [registerName, setRegisterName] = useState("");
+  const [registering, setRegistering] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(() => !!getUrlParam("id"));
+  const [copyMsg, setCopyMsg] = useState("");
+  // Tech training state
+  const [techLessonId, setTechLessonId] = useState(null);
+  const [techFilter, setTechFilter] = useState("all");
+  const [techStartDate, setTechStartDate] = useState(() => new Date().toISOString().split("T")[0]);
+
+  useEffect(() => {
+    if (mode === "trainee" && traineeId && GAS_URL) {
+      setInitialLoading(true);
+      sendToGAS({ action: "get_trainee_progress", traineeId }).then(res => {
+        if (res && res.status === "ok" && res.state) {
+          if (res.state.done) setDone(res.state.done);
+          if (res.state.qDone) setQDone(res.state.qDone);
+          if (res.state.qAns) setQAns(res.state.qAns);
+          if (res.state.qSub) setQSub(res.state.qSub);
+          if (res.state.wAns) setWAns(res.state.wAns);
+          if (res.name) setTraineeName(res.name);
+        }
+        setInitialLoading(false);
+      }).catch(() => setInitialLoading(false));
+    }
+    if (mode === "admin" && GAS_URL) { loadTraineeList(); loadDashboard(); }
+  }, []);
+
+  const totalL = allLessons.length;
+  const doneC = Object.keys(done).length;
+  const totalQ = allModuleIds.length;
+  const qDoneC = Object.keys(qDone).length;
+  const isModDone = (m) => m.lessons.every(l => done[l.id]);
+  const dayProg = (d) => { let c = 0; d.modules.forEach(m => m.lessons.forEach(l => { if (done[l.id]) c++; })); return c; };
+  const dayTotal = (d) => { let c = 0; d.modules.forEach(m => c += m.lessons.length); return c; };
+  const nav = (v) => { setView(v); if (v.t === "mod") setTab("lessons"); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const nextL = (id) => { const i = allLessons.indexOf(id); return i >= 0 && i < allLessons.length - 1 ? allLessons[i + 1] : null; };
+  const findL = (id) => { for (const d of TRAINING_DATA.days) for (const m of d.modules) { const l = m.lessons.find(l => l.id === id); if (l) return { d, m, l }; } return null; };
+  const findM = (id) => { for (const d of TRAINING_DATA.days) { const m = d.modules.find(m => m.id === id); if (m) return { d, m }; } return null; };
+
+  const submitQ = (mid, quiz) => {
+    const newQSub = { ...qSub, [mid]: true }; setQSub(newQSub);
+    const ok = quiz.filter((q, i) => qAns[`${mid}-${i}`] === q.ans).length;
+    const passed = ok >= Math.ceil(quiz.length * 0.7);
+    const newQDone = passed ? { ...qDone, [mid]: true } : qDone;
+    if (passed) setQDone(newQDone);
+    const fm = findM(mid);
+    syncProgress([{ type: "quiz_submit", dayId: fm?.d?.id, moduleId: mid, moduleName: fm?.m?.title, quizCorrect: ok, quizTotal: quiz.length, quizPassed: passed }], { qSub: newQSub, qDone: newQDone });
+  };
+  const retryQ = (mid) => { const na = { ...qAns }; Object.keys(na).forEach(k => { if (k.startsWith(mid)) delete na[k]; }); setQAns(na); setQSub(p => { const n = { ...p }; delete n[mid]; return n; }); setQDone(p => { const n = { ...p }; delete n[mid]; return n; }); };
+
+  const buildProgressData = () => {
+    const dayProgress = (d) => { const total = dayTotal(d); const prog = dayProg(d); return total ? Math.round(prog / total * 100) + "%" : "0%"; };
+    return { completedLessons: Object.keys(done).length, totalLessons: totalL, completedQuizzes: Object.keys(qDone).length, totalQuizzes: totalQ, writtenCount: Object.keys(wAns).filter(k => wAns[k] && wAns[k].trim().length > 0).length, day1: TRAINING_DATA.days[0] ? dayProgress(TRAINING_DATA.days[0]) : "0%", day2: TRAINING_DATA.days[1] ? dayProgress(TRAINING_DATA.days[1]) : "0%", day3: TRAINING_DATA.days[2] ? dayProgress(TRAINING_DATA.days[2]) : "0%" };
+  };
+
+  const syncProgress = async (events = [], updatedState = null) => {
+    if (!traineeId || !GAS_URL) return;
+    setSyncStatus("syncing");
+    const payload = { action: events.length > 0 ? "log_progress" : "sync_full", traineeId, traineeName, progress: buildProgressData(), detailedState: { done: updatedState?.done ?? done, qDone: updatedState?.qDone ?? qDone, qAns: updatedState?.qAns ?? qAns, qSub: updatedState?.qSub ?? qSub, wAns: updatedState?.wAns ?? wAns }, events };
+    const res = await sendToGAS(payload);
+    setSyncStatus(res && !res.error ? "ok" : "error");
+    setTimeout(() => setSyncStatus(""), 3000);
+  };
+
+  const loadDashboard = async () => { setDashLoading(true); const data = await fetchFromGAS({ action: "get_dashboard" }); setDashData(data); setDashLoading(false); };
+  const loadTraineeList = async () => { if (!GAS_URL) return; const res = await fetchFromGAS({ action: "list_trainees" }); if (res && res.trainees) setTraineeList(res.trainees); };
+  const registerTrainee = async () => {
+    if (!registerName.trim()) return;
+    if (!GAS_URL) { setRegisterError("GAS_URLが設定されていません。"); return; }
+    setRegistering(true); setRegisterError("");
+    const res = await sendToGAS({ action: "register_trainee", traineeName: registerName.trim() });
+    if (res && res.traineeId) { setRegisterName(""); await loadTraineeList(); await loadDashboard(); }
+    else setRegisterError(res?.error || "登録に失敗しました。");
+    setRegistering(false);
+  };
+  const getTraineeUrl = (id) => window.location.href.split("?")[0] + "?id=" + id;
+  const copyUrl = (id) => {
+    const url = getTraineeUrl(id);
+    if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(url).then(() => { setCopyMsg(id); setTimeout(() => setCopyMsg(""), 2000); }); }
+    else { const ta = document.createElement("textarea"); ta.value = url; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); setCopyMsg(id); setTimeout(() => setCopyMsg(""), 2000); }
+  };
+
+  // Tech schedule calc
+  const techSchedule = useMemo(() => {
+    const start = new Date(techStartDate);
+    if (isNaN(start.getTime())) return null;
+    const add = (d, n) => { const r = new Date(d); r.setDate(r.getDate() + n); return r; };
+    const fmt = d => `${d.getFullYear()}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getDate().toString().padStart(2,'0')}`;
+    const sfmt = d => `${d.getMonth()+1}/${d.getDate()}`;
+    return {
+      goal1: fmt(add(start, 28)), goal2: fmt(add(start, 84)),
+      phases: [
+        { label: "Phase 1 (W1-2)", dates: `${sfmt(start)}~${sfmt(add(start,13))}`, title: "基礎構築 & マネキン習得", desc: "座学・法規・衛生管理の完了。Perm/Browのマネキン施術合格を目指す。", accent: "#E07A88" },
+        { label: "Phase 2 (W3-4)", dates: `${sfmt(add(start,14))}~${sfmt(add(start,27))}`, title: "1st Debut Exam (Perm/Brow)", desc: "モデル施術集中。合格次第Perm & Browでの入客を開始する。", accent: "#E07A88", highlight: true },
+        { label: "Phase 3 (W5-6)", dates: `${sfmt(add(start,28))}~${sfmt(add(start,41))}`, title: "Jr.サロンワーク & Ext基礎", desc: "日中はPerm/Brow入客。空き時間にExtのマネキン装着を開始。", accent: "#999" },
+        { label: "Phase 4 (W7-8)", dates: `${sfmt(add(start,42))}~${sfmt(add(start,55))}`, title: "Extモデル実践 & スピード", desc: "知人モデルでのExt装着開始。100本装着のタイム計測スタート。", accent: "#9A75D6" },
+        { label: "Phase 5 (W9-10)", dates: `${sfmt(add(start,56))}~${sfmt(add(start,69))}`, title: "デザイン応用 & 同時施術", desc: "デザイン分け。セットメニュー効率化。", accent: "#9A75D6" },
+        { label: "Phase 6 (W11-12)", dates: `${sfmt(add(start,70))}~${sfmt(add(start,83))}`, title: "Final Debut Exam (Extension)", desc: "全メニュー合格。トータルアイデザイナーとして完全デビュー。", accent: "#9A75D6", highlight: true }
+      ]
+    };
+  }, [techStartDate]);
+
+  // ── DASHBOARD ──
+  const renderDashboard = () => (
+    <div style={{ minHeight: "100vh", backgroundColor: "#FAF6F1" }}>
+      <div className="px-4 py-3 flex items-center gap-3" style={{ borderBottom: "1px solid rgba(201,145,138,0.15)", backgroundColor: "#fff" }}>
+        <div style={{ fontSize: 16, fontWeight: 600, color: "#5B0E2D" }}>管理者ダッシュボード</div>
+        <button onClick={() => { loadDashboard(); loadTraineeList(); }} className="ml-auto px-3 py-1.5 rounded-lg" style={{ fontSize: 11, color: "#5B6E82", backgroundColor: "rgba(91,110,130,0.08)" }}>更新</button>
+      </div>
+      <div className="p-4 max-w-2xl mx-auto">
+        {!GAS_URL ? <div className="bg-white rounded-2xl p-6 text-center" style={{ border: "1px solid rgba(201,145,138,0.2)" }}><div style={{ fontSize: 14, fontWeight: 600, color: "#5B0E2D", marginBottom: 8 }}>GAS連携が未設定です</div></div> : (
+          <div>
+            <FadeIn><div className="bg-white rounded-2xl p-5 mb-6" style={{ border: "1px solid rgba(201,145,138,0.2)" }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "#5B0E2D", marginBottom: 12 }}>受講者を登録</div>
+              <div className="flex gap-2">
+                <input type="text" value={registerName} onChange={e => setRegisterName(e.target.value)} placeholder="受講者名を入力" className="flex-1 px-4 py-2.5 rounded-xl text-sm" style={{ border: "1px solid rgba(201,145,138,0.3)", fontSize: 13 }} onKeyDown={e => { if (e.key === "Enter") registerTrainee(); }} />
+                <button onClick={registerTrainee} disabled={registering || !registerName.trim()} className="px-5 py-2.5 rounded-xl text-white font-semibold transition-all hover:opacity-90 disabled:opacity-40" style={{ fontSize: 13, background: "linear-gradient(135deg, #5B0E2D 0%, #8C3F5C 100%)", whiteSpace: "nowrap" }}>{registering ? "登録中..." : "登録"}</button>
+              </div>
+              {registerError && <div className="mt-2 px-3 py-2 rounded-lg text-sm" style={{ backgroundColor: "#FEF2F2", color: "#DC2626", fontSize: 12 }}>{registerError}</div>}
+            </div></FadeIn>
+            {traineeList.length > 0 && <FadeIn delay={100}><div className="bg-white rounded-2xl p-5 mb-6" style={{ border: "1px solid rgba(201,145,138,0.2)" }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "#5B0E2D", marginBottom: 12 }}>受講者URL一覧</div>
+              {traineeList.map(t => { const pct = parseInt(t.progressRate) || 0; return (
+                <div key={t.id} className="flex items-center gap-3 py-3" style={{ borderBottom: "1px solid rgba(201,145,138,0.08)" }}>
+                  <div className="flex-1 min-w-0"><div className="flex items-center gap-2 mb-1"><span style={{ fontSize: 13, fontWeight: 600, color: "#2D2D2D" }}>{t.name}</span><span className="px-2 py-0.5 rounded-full" style={{ fontSize: 10, fontWeight: 600, backgroundColor: pct === 100 ? "rgba(4,120,87,0.08)" : "rgba(140,123,114,0.1)", color: pct === 100 ? "#047857" : "#8C7B72" }}>{t.progressRate}</span></div><div style={{ fontSize: 10, color: "#8C7B72", fontFamily: "monospace", wordBreak: "break-all" }}>{getTraineeUrl(t.id)}</div></div>
+                  <button onClick={() => copyUrl(t.id)} className="px-3 py-1.5 rounded-lg flex-shrink-0" style={{ fontSize: 11, fontWeight: 600, color: copyMsg === t.id ? "#047857" : "#5B6E82", backgroundColor: copyMsg === t.id ? "rgba(4,120,87,0.08)" : "rgba(91,110,130,0.08)" }}>{copyMsg === t.id ? "コピー済み!" : "URLコピー"}</button>
+                </div>);
+              })}
+            </div></FadeIn>}
+            {dashLoading ? <div className="text-center py-8" style={{ fontSize: 13, color: "#8C7B72" }}>読み込み中...</div> : dashData ? (
+              <div>
+                <FadeIn delay={150}><div className="grid grid-cols-3 gap-3 mb-6">{[{ label: "受講者数", value: dashData.trainees?.length || 0, unit: "名" },{ label: "全員完了", value: dashData.trainees?.filter(t => t.progressRate === "100%").length || 0, unit: "名" },{ label: "直近ログ", value: dashData.recentLogs?.length || 0, unit: "件" }].map((s, i) => (<div key={i} className="bg-white rounded-2xl p-4 text-center" style={{ border: "1px solid rgba(201,145,138,0.15)" }}><div style={{ fontSize: 10, color: "#8C7B72", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>{s.label}</div><div style={{ fontSize: 28, fontWeight: 300, color: "#5B0E2D", fontFamily: "'Cormorant Garamond', serif" }}>{s.value}<span style={{ fontSize: 12, color: "#8C7B72" }}>{s.unit}</span></div></div>))}</div></FadeIn>
+                <FadeIn delay={100}><div className="mb-6"><div style={{ fontSize: 13, fontWeight: 600, color: "#5B0E2D", marginBottom: 12 }}>受講者別進捗</div>
+                  {dashData.trainees && dashData.trainees.length > 0 ? dashData.trainees.map((t, i) => { const pct = parseInt(t.progressRate) || 0; return (
+                    <div key={i} className="bg-white rounded-2xl p-4 mb-3" style={{ border: "1px solid rgba(201,145,138,0.15)" }}>
+                      <div className="flex items-center justify-between mb-2"><span style={{ fontSize: 14, fontWeight: 600 }}>{t.name}</span><span style={{ fontSize: 12, fontWeight: 600, color: pct === 100 ? "#6B7F5C" : "#C9918A" }}>{t.progressRate}</span></div>
+                      <div className="w-full rounded-full mb-3" style={{ height: 6, backgroundColor: "rgba(201,145,138,0.15)" }}><div className="rounded-full" style={{ height: 6, width: pct + "%", background: pct === 100 ? "linear-gradient(90deg, #6B7F5C, #8DA076)" : "linear-gradient(90deg, #C9918A, #D4A59E)" }} /></div>
+                      <div className="grid grid-cols-3 gap-2 mb-2">{[["STEP 1", t.day1],["STEP 2", t.day2],["STEP 3", t.day3]].map(([label, val]) => (<div key={label} className="text-center py-1.5 rounded-lg" style={{ backgroundColor: "rgba(201,145,138,0.06)", fontSize: 11 }}><div style={{ color: "#8C7B72", fontWeight: 600 }}>{label}</div><div style={{ color: "#5B0E2D", fontWeight: 600 }}>{val}</div></div>))}</div>
+                      <div className="flex gap-4" style={{ fontSize: 11, color: "#8C7B72" }}><span>レッスン: {t.completedLessons}/{t.totalLessons}</span><span>クイズ: {t.completedQuizzes}/{t.totalQuizzes}</span><span>記述: {t.writtenCount}件</span></div>
+                    </div>); }) : <div className="bg-white rounded-2xl p-6 text-center" style={{ fontSize: 13, color: "#8C7B72" }}>まだ受講者データがありません</div>}
+                </div></FadeIn>
+                <FadeIn delay={200}><div className="mb-6"><div style={{ fontSize: 13, fontWeight: 600, color: "#5B0E2D", marginBottom: 12 }}>直近アクティビティ</div>
+                  {dashData.recentLogs && dashData.recentLogs.length > 0 ? <div className="bg-white rounded-2xl overflow-hidden" style={{ border: "1px solid rgba(201,145,138,0.15)" }}>{dashData.recentLogs.slice(0, 20).map((log, i) => (<div key={i} className="px-4 py-3 flex items-start gap-3" style={{ borderBottom: "1px solid rgba(201,145,138,0.08)" }}><div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: log.type === "lesson_complete" ? "#6B7F5C" : "#A67C52" }} /><div className="flex-1 min-w-0"><div className="flex items-center gap-2 mb-0.5"><span style={{ fontSize: 12, fontWeight: 600 }}>{log.name}</span><span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 4, fontWeight: 600, backgroundColor: "rgba(107,127,92,0.1)", color: "#6B7F5C" }}>{log.type === "lesson_complete" ? "レッスン完了" : log.type === "quiz_submit" ? "クイズ" : "記述提出"}</span></div><div style={{ fontSize: 11, color: "#8C7B72" }}>{log.moduleName}{log.lessonName ? " / " + log.lessonName : ""}</div><div style={{ fontSize: 10, color: "#bbb", marginTop: 2 }}>{log.timestamp}</div></div></div>))}</div> : <div className="bg-white rounded-2xl p-6 text-center" style={{ fontSize: 13, color: "#8C7B72" }}>まだログがありません</div>}
+                </div></FadeIn>
+              </div>
+            ) : null}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  // ── HOME (with Tech Training section) ──
+  const renderHome = () => (
+    <div>
+      <div className="flex items-center justify-between px-4 py-2" style={{ backgroundColor: "#FAF6F1", borderBottom: "1px solid rgba(201,145,138,0.15)" }}>
+        <div className="flex items-center gap-2">
+          {traineeName && <span className="px-3 py-1.5 rounded-lg" style={{ fontSize: 12, fontWeight: 600, color: "#5B0E2D", backgroundColor: "rgba(201,145,138,0.12)" }}>{traineeName}</span>}
+          {syncStatus === "syncing" && <span style={{ fontSize: 10, color: "#C9918A" }}>同期中...</span>}
+          {syncStatus === "ok" && <span style={{ fontSize: 10, color: "#6B7F5C" }}>同期完了</span>}
+          {syncStatus === "error" && <span style={{ fontSize: 10, color: "#C9918A" }}>同期エラー</span>}
+        </div>
+      </div>
+      {/* Hero */}
+      <div className="relative overflow-hidden" style={{ background: "linear-gradient(170deg, #FAF6F1 0%, #F3EDE7 40%, #EDE4DC 100%)" }}>
+        <div className="absolute inset-0" style={{ backgroundImage: "radial-gradient(circle at 80% 20%, rgba(201,145,138,0.12) 0%, transparent 50%), radial-gradient(circle at 20% 80%, rgba(91,14,45,0.06) 0%, transparent 50%)" }} />
+        <div className="relative text-center py-16 px-6">
+          <FadeIn><div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.3em", color: "#C9918A", marginBottom: 16, textTransform: "uppercase" }}>Staff Training</div></FadeIn>
+          <FadeIn delay={100}><h1 style={{ fontSize: 38, fontWeight: 300, color: "#5B0E2D", fontFamily: "'Cormorant Garamond', serif", lineHeight: 1.2, marginBottom: 8 }}>サロン研修<br/><span style={{ fontWeight: 600 }}>プログラム</span></h1></FadeIn>
+          <FadeIn delay={200}><p style={{ fontSize: 13, color: "#8C7B72", maxWidth: 420, margin: "0 auto 32px", lineHeight: 1.8 }}>マナー研修と技術研修を統合した<br/>トータルトレーニングプログラムです</p></FadeIn>
+          <FadeIn delay={300}><div style={{ maxWidth: 380, margin: "0 auto" }} className="space-y-3">
+            <ProgressBar current={doneC} total={totalL} label={`Lessons — ${doneC} / ${totalL}`} />
+            <ProgressBar current={qDoneC} total={totalQ} label={`Tests Passed — ${qDoneC} / ${totalQ}`} variant="gold" />
+          </div></FadeIn>
+        </div>
+      </div>
+
+      <div className="max-w-3xl mx-auto px-4 py-10 space-y-8">
+        {/* Manner Training Days */}
+        {TRAINING_DATA.days.map((day, di) => {
+          const prog = dayProg(day), tot = dayTotal(day), complete = prog === tot;
+          return (
+            <FadeIn key={day.id} delay={di * 120}>
+              <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: "#fff", boxShadow: "0 1px 3px rgba(91,14,45,0.04), 0 8px 32px rgba(91,14,45,0.06)" }}>
+                <div className="p-6" style={{ borderBottom: "1px solid rgba(201,145,138,0.12)" }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3"><span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.2em", color: complete ? "#047857" : "#C9918A" }}>{day.title}</span>{complete && <span className="px-2 py-0.5 rounded-full" style={{ fontSize: 9, fontWeight: 700, backgroundColor: "rgba(4,120,87,0.08)", color: "#047857" }}>COMPLETE</span>}</div>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: "#5B0E2D" }}>{prog}/{tot}</span>
+                  </div>
+                  <h2 style={{ fontSize: 20, fontWeight: 600, color: "#1A1A1A", fontFamily: "'Cormorant Garamond', serif", marginBottom: 4 }}>{day.subtitle}</h2>
+                  <p style={{ fontSize: 12, color: "#8C7B72", marginBottom: 12 }}>{day.description}</p>
+                  <ProgressBar current={prog} total={tot} />
+                </div>
+                <div>{day.modules.map((mod, mi) => {
+                  const mc = isModDone(mod), qp = qDone[mod.id], ld = mod.lessons.filter(l => done[l.id]).length, accent = MODULE_ACCENT[mod.id] || "#5B0E2D";
+                  return (<div key={mod.id} className="flex items-center justify-between px-6 py-4 cursor-pointer transition-all hover:bg-stone-50/50" style={{ borderBottom: mi < day.modules.length - 1 ? "1px solid rgba(201,145,138,0.08)" : "none" }} onClick={() => nav({ t: "mod", id: mod.id })}>
+                    <div className="flex items-center gap-4"><div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: mc ? "rgba(4,120,87,0.08)" : `${accent}11`, color: mc ? "#047857" : accent }}>{Icons[MODULE_ICONS[mod.id]] || Icons.target}</div><div><div style={{ fontSize: 14, fontWeight: 600, color: "#1A1A1A" }}>{mod.title}</div><div style={{ fontSize: 11, color: "#999" }}>{mod.lessons.length} lessons</div></div></div>
+                    <div className="flex items-center gap-3"><span style={{ fontSize: 11, fontWeight: 600, color: mc ? "#047857" : "#bbb" }}>{ld}/{mod.lessons.length}</span>{qp && <span className="px-2 py-0.5 rounded" style={{ fontSize: 9, fontWeight: 700, backgroundColor: "rgba(4,120,87,0.08)", color: "#047857" }}>PASS</span>}<div className="w-4 h-4" style={{ color: "#ccc" }}>{Icons.chevRight}</div></div>
+                  </div>);
+                })}</div>
+              </div>
+            </FadeIn>
+          );
+        })}
+
+        {/* ── TECHNICAL TRAINING SECTION ── */}
+        <FadeIn delay={400}>
+          <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: "#fff", boxShadow: "0 1px 3px rgba(91,14,45,0.04), 0 8px 32px rgba(91,14,45,0.06)" }}>
+            <div className="p-6" style={{ borderBottom: "1px solid rgba(201,145,138,0.12)" }}>
+              <div className="flex items-center gap-3 mb-2"><span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.2em", color: "#9A75D6" }}>技術研修プログラム</span></div>
+              <h2 style={{ fontSize: 20, fontWeight: 600, color: "#1A1A1A", fontFamily: "'Cormorant Garamond', serif", marginBottom: 4 }}>Perm & Brow先行デビュー型カリキュラム</h2>
+              <p style={{ fontSize: 12, color: "#8C7B72", marginBottom: 12 }}>専門技術の理論とクイズで知識を深めます</p>
+              <button onClick={() => nav({ t: "tech" })} className="px-5 py-2.5 rounded-xl text-white font-semibold transition-all hover:opacity-90" style={{ fontSize: 13, background: "linear-gradient(135deg, #9A75D6 0%, #C5A3FF 100%)" }}>
+                <span className="flex items-center gap-2"><span className="w-4 h-4">{Icons.scissors}</span>技術研修を開く</span>
+              </button>
+            </div>
+          </div>
+        </FadeIn>
+      </div>
+    </div>
+  );
+
+  // ── TECH VIEW ──
+  const renderTech = () => {
+    const filtered = techFilter === "all" ? TECH_CURRICULUM_ITEMS : TECH_CURRICULUM_ITEMS.filter(i => i.type === techFilter);
+    const catColor = (type) => type === "theory" ? "#8C7B72" : type === "perm_brow" ? "#E07A88" : "#9A75D6";
+    const catBg = (type) => type === "theory" ? "rgba(140,123,114,0.06)" : type === "perm_brow" ? "rgba(224,122,136,0.06)" : "rgba(154,117,214,0.06)";
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <button onClick={() => nav({ t: "home" })} className="flex items-center gap-1.5 mb-8 transition-opacity hover:opacity-60" style={{ fontSize: 12, fontWeight: 500, color: "#C9918A" }}><div className="w-4 h-4">{Icons.chevLeft}</div>Back to Overview</button>
+        <FadeIn>
+          <h2 style={{ fontSize: 28, fontWeight: 600, color: "#1A1A1A", fontFamily: "'Cormorant Garamond', serif", marginBottom: 8 }}>技術研修プログラム</h2>
+          <p style={{ fontSize: 13, color: "#8C7B72", marginBottom: 24 }}>Perm & Brow先行デビュー型カリキュラム</p>
+        </FadeIn>
+
+        {/* Roadmap */}
+        <FadeIn delay={100}>
+          <div className="rounded-2xl p-6 mb-8" style={{ backgroundColor: "#fff", border: "1px solid rgba(201,145,138,0.12)" }}>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              <div className="lg:col-span-4 lg:border-r" style={{ borderColor: "rgba(201,145,138,0.1)", paddingRight: 24 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", color: "#8C7B72", marginBottom: 8 }}>START DATE</div>
+                <input type="date" value={techStartDate} onChange={e => setTechStartDate(e.target.value)} className="w-full py-2 mb-6" style={{ fontSize: 15, fontWeight: 600, color: "#1A1A1A", borderBottom: "2px solid rgba(201,145,138,0.3)", background: "transparent", outline: "none" }} />
+                {techSchedule && <div className="space-y-4">
+                  <div className="p-4 rounded-xl" style={{ borderLeft: "4px solid #E07A88", backgroundColor: "rgba(224,122,136,0.04)" }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "#E07A88", letterSpacing: "0.1em" }}>1ST DEBUT</div>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: "#1A1A1A" }}>{techSchedule.goal1}</div>
+                    <div style={{ fontSize: 11, color: "#8C7B72" }}>Perm & Brow 入客開始</div>
+                  </div>
+                  <div className="p-4 rounded-xl" style={{ borderLeft: "4px solid #9A75D6", backgroundColor: "rgba(154,117,214,0.04)" }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "#9A75D6", letterSpacing: "0.1em" }}>FINAL DEBUT</div>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: "#1A1A1A" }}>{techSchedule.goal2}</div>
+                    <div style={{ fontSize: 11, color: "#8C7B72" }}>Extension 完全デビュー</div>
+                  </div>
+                </div>}
+              </div>
+              <div className="lg:col-span-8">
+                <div style={{ fontSize: 15, fontWeight: 700, color: "#1A1A1A", marginBottom: 16 }}>Detailed Roadmap</div>
+                {techSchedule && <div className="relative" style={{ paddingLeft: 24 }}>
+                  <div className="absolute left-3 top-4 bottom-4" style={{ width: 2, background: "linear-gradient(to bottom, #E07A88, #9A75D6)" }} />
+                  {techSchedule.phases.map((p, pi) => (
+                    <div key={pi} className="relative flex gap-4 mb-5">
+                      <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center flex-shrink-0 z-10" style={{ border: `3px solid ${p.accent}`, fontSize: 10, fontWeight: 700, color: p.accent }}>{String(pi+1).padStart(2,'0')}</div>
+                      <div className="flex-1 p-3.5 rounded-xl" style={{ backgroundColor: p.highlight ? `${p.accent}08` : "#fff", border: `1px solid ${p.highlight ? p.accent : "rgba(201,145,138,0.1)"}` }}>
+                        <div className="flex justify-between items-center mb-1"><span className="px-2 py-0.5 rounded-full" style={{ fontSize: 9, fontWeight: 700, backgroundColor: p.highlight ? p.accent : "rgba(201,145,138,0.08)", color: p.highlight ? "#fff" : "#8C7B72" }}>{p.label}</span><span style={{ fontSize: 10, fontWeight: 600, color: p.highlight ? p.accent : "#8C7B72" }}>{p.dates}</span></div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: p.highlight ? p.accent : "#1A1A1A", marginBottom: 2 }}>{p.title}</div>
+                        <div style={{ fontSize: 11, color: "#8C7B72", lineHeight: 1.6 }}>{p.desc}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>}
+              </div>
+            </div>
+          </div>
+        </FadeIn>
+
+        {/* Curriculum */}
+        <FadeIn delay={200}>
+          <div className="rounded-2xl overflow-hidden mb-8" style={{ backgroundColor: "#fff", border: "1px solid rgba(201,145,138,0.12)" }}>
+            <div className="p-5 flex justify-between items-center" style={{ borderBottom: "1px solid rgba(201,145,138,0.1)" }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "#1A1A1A" }}>All Curriculum</div>
+              <div className="flex gap-2">
+                {[["all","All"],["theory","Theory"],["perm_brow","Perm/Brow"],["extension","Extension"]].map(([k,label]) => (
+                  <button key={k} onClick={() => setTechFilter(k)} className="px-3 py-1.5 rounded-lg transition-all" style={{ fontSize: 11, fontWeight: 600, backgroundColor: techFilter === k ? (k === "perm_brow" ? "rgba(224,122,136,0.1)" : k === "extension" ? "rgba(154,117,214,0.1)" : "rgba(91,14,45,0.08)") : "rgba(201,145,138,0.06)", color: techFilter === k ? (k === "perm_brow" ? "#E07A88" : k === "extension" ? "#9A75D6" : "#5B0E2D") : "#999" }}>{label}</button>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 p-5">
+              {filtered.map(item => (
+                <div key={item.id} className="p-4 rounded-xl cursor-pointer transition-all hover:shadow-md" style={{ backgroundColor: catBg(item.type), border: `1px solid ${catColor(item.type)}22` }} onClick={() => setTechLessonId(item.id)}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#1A1A1A", marginBottom: 4 }}>{item.t}</div>
+                  <div style={{ fontSize: 11, color: "#8C7B72" }}>{item.d}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </FadeIn>
+      </div>
+    );
+  };
+
+  // ── MODULE VIEW ──
+  const renderMod = (mid) => {
+    const ctx = findM(mid); if (!ctx) return null;
+    const { d: day, m: mod } = ctx;
+    const accent = MODULE_ACCENT[mid] || "#5B0E2D";
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-8">
+        <button onClick={() => nav({ t: "home" })} className="flex items-center gap-1.5 mb-8 transition-opacity hover:opacity-60" style={{ fontSize: 12, fontWeight: 500, color: "#C9918A" }}><div className="w-4 h-4">{Icons.chevLeft}</div>Back to Overview</button>
+        <FadeIn>
+          <div className="flex items-center gap-3 mb-2"><div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${accent}11`, color: accent }}>{Icons[MODULE_ICONS[mid]] || Icons.target}</div><span style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.15em", color: "#C9918A" }}>{day.title}</span></div>
+          <h2 style={{ fontSize: 28, fontWeight: 600, color: "#1A1A1A", fontFamily: "'Cormorant Garamond', serif", marginBottom: 24 }}>{mod.title}</h2>
+        </FadeIn>
+        <FadeIn delay={100}><div className="flex gap-0 mb-8 p-1 rounded-xl" style={{ backgroundColor: "rgba(201,145,138,0.08)" }}>
+          {[["lessons","Lessons"],["quiz","Test"],["written","Exercises"]].map(([k, label]) => (<button key={k} onClick={() => setTab(k)} className="flex-1 py-2.5 rounded-lg transition-all" style={{ fontSize: 12, fontWeight: 600, backgroundColor: tab === k ? "#fff" : "transparent", color: tab === k ? "#5B0E2D" : "#999", boxShadow: tab === k ? "0 1px 4px rgba(0,0,0,0.06)" : "none" }}>{label}</button>))}
+        </div></FadeIn>
+
+        {tab === "lessons" && <div className="space-y-3">{mod.lessons.map((lesson, li) => {
+          const dn = done[lesson.id];
+          return (<FadeIn key={lesson.id} delay={li * 60}><div className="flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all" style={{ backgroundColor: dn ? "rgba(4,120,87,0.03)" : "#fff", border: `1px solid ${dn ? "rgba(4,120,87,0.15)" : "rgba(201,145,138,0.15)"}` }} onClick={() => nav({ t: "lesson", id: lesson.id })}>
+            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: dn ? "rgba(4,120,87,0.08)" : `${accent}0D`, color: dn ? "#047857" : accent, fontSize: 12, fontWeight: 700 }}>{dn ? <div className="w-4 h-4">{Icons.check}</div> : li + 1}</div>
+            <span style={{ fontSize: 14, fontWeight: 500, color: "#1A1A1A", flex: 1 }}>{lesson.title}</span>
+            <div className="w-4 h-4" style={{ color: "#ccc" }}>{Icons.chevRight}</div>
+          </div></FadeIn>);
+        })}</div>}
+
+        {tab === "quiz" && <div className="rounded-2xl p-6" style={{ backgroundColor: qDone[mid] ? "rgba(4,120,87,0.03)" : "#FDFBF9", border: `1px solid ${qDone[mid] ? "rgba(4,120,87,0.15)" : "rgba(201,145,138,0.15)"}` }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.15em", color: qDone[mid] ? "#047857" : "#5B0E2D", marginBottom: 4, textTransform: "uppercase" }}>{qDone[mid] ? "Passed" : "Comprehension Test"}</div>
+          <p style={{ fontSize: 12, color: "#8C7B72", marginBottom: 20 }}>70%以上の正答で合格{!isModDone(mod) && " — 全レッスン完了後に受験可能"}</p>
+          {isModDone(mod) ? (<div>
+            {mod.quiz.map((q, qi) => { const sel = qAns[`${mid}-${qi}`]; const sub = qSub[mid]; const ok = sel === q.ans;
+              return (<div key={qi} className="mb-5 p-5 rounded-xl" style={{ backgroundColor: "#fff", border: "1px solid rgba(201,145,138,0.1)" }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: "#1A1A1A", marginBottom: 12 }}>Q{qi + 1}. {q.q}</div>
+                <div className="space-y-2">{q.opts.map((opt, oi) => { const isSel = sel === oi, showOk = sub && oi === q.ans, showBad = sub && isSel && !ok;
+                  return (<button key={oi} onClick={() => !sub && setQAns(p => ({ ...p, [`${mid}-${qi}`]: oi }))} className="w-full text-left p-3 rounded-xl" style={{ fontSize: 13, border: `1.5px solid ${showOk ? "#047857" : showBad ? "#B91C1C" : isSel ? "#C9918A" : "rgba(201,145,138,0.15)"}`, backgroundColor: showOk ? "rgba(4,120,87,0.04)" : showBad ? "rgba(185,28,28,0.04)" : isSel ? "rgba(201,145,138,0.06)" : "#fff", cursor: sub ? "default" : "pointer" }}><span style={{ fontWeight: 600, marginRight: 8, color: showOk ? "#047857" : showBad ? "#B91C1C" : "#bbb" }}>{String.fromCharCode(65 + oi)}</span>{opt}</button>);
+                })}</div>
+                {sub && <div className="mt-3 p-3 rounded-xl" style={{ fontSize: 12, lineHeight: 1.7, backgroundColor: ok ? "rgba(4,120,87,0.04)" : "rgba(185,28,28,0.04)", color: ok ? "#047857" : "#B91C1C" }}>{ok ? "Correct" : "Incorrect"} — {q.explanation}</div>}
+              </div>);
+            })}
+            {!qSub[mid] ? <button onClick={() => submitQ(mid, mod.quiz)} className="w-full py-3.5 rounded-xl font-semibold text-white" style={{ fontSize: 13, background: "linear-gradient(135deg, #5B0E2D 0%, #8C3F5C 100%)" }}>Submit Answers</button>
+              : <div className="text-center">{qDone[mid] ? <p style={{ fontSize: 14, fontWeight: 600, color: "#047857" }}>Test Passed</p> : <div><p style={{ fontSize: 13, color: "#B91C1C", marginBottom: 12 }}>Not passed — Review and retry</p><button onClick={() => retryQ(mid)} className="px-6 py-2.5 rounded-xl" style={{ fontSize: 12, fontWeight: 600, border: "1.5px solid #5B0E2D", color: "#5B0E2D" }}>Retry</button></div>}</div>}
+          </div>) : <div className="text-center py-8" style={{ fontSize: 13, color: "#bbb" }}>Complete all lessons first</div>}
+        </div>}
+
+        {tab === "written" && <div>
+          <div className="mb-6 p-4 rounded-xl" style={{ backgroundColor: "rgba(253,230,138,0.1)", border: "1px solid rgba(253,230,138,0.25)" }}><div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", color: "#78350F", marginBottom: 2 }}>WRITTEN EXERCISES</div><div style={{ fontSize: 12, color: "#92400E", lineHeight: 1.7 }}>自分の言葉で考えを深める演習です。</div></div>
+          {(mod.writtenExercises || []).map((ex, ei) => (<FadeIn key={ei} delay={ei * 80}><WrittenExercise exercise={ex} index={ei} value={wAns[`${mid}-w${ei}`]} onChange={v => setWAns(p => ({ ...p, [`${mid}-w${ei}`]: v }))} revealed={hints[`${mid}-w${ei}`]} onReveal={() => setHints(p => ({ ...p, [`${mid}-w${ei}`]: !p[`${mid}-w${ei}`] }))} /></FadeIn>))}
+          {(!mod.writtenExercises || !mod.writtenExercises.length) && <div className="text-center py-8" style={{ fontSize: 13, color: "#bbb" }}>No exercises for this module</div>}
+          {mod.writtenExercises && mod.writtenExercises.length > 0 && GAS_URL && traineeId && <div className="mt-4 text-center"><button onClick={() => {
+            const events = mod.writtenExercises.map((ex, ei) => ({ type: "written_submit", dayId: findM(mid)?.d?.id, moduleId: mid, moduleName: mod.title, writtenQuestion: ex.q, writtenAnswer: wAns[`${mid}-w${ei}`] || "" })).filter(e => e.writtenAnswer.trim());
+            if (events.length > 0) syncProgress(events);
+          }} className="px-6 py-3 rounded-xl font-semibold text-white" style={{ fontSize: 13, background: "linear-gradient(135deg, #5B6E82 0%, #7A8FA0 100%)" }}><span className="flex items-center justify-center gap-2">{Icons.clipboard}<span>記述回答を提出</span></span></button></div>}
+        </div>}
+      </div>
+    );
+  };
+
+  // ── LESSON VIEW ──
+  const renderLesson = (lid) => {
+    const ctx = findL(lid); if (!ctx) return null;
+    const { d: day, m: mod, l: lesson } = ctx;
+    const nxt = nextL(lid);
+    const isLast = mod.lessons[mod.lessons.length - 1].id === lid;
+    const accent = MODULE_ACCENT[mod.id] || "#5B0E2D";
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-8">
+        <button onClick={() => nav({ t: "mod", id: mod.id })} className="flex items-center gap-1.5 mb-8 transition-opacity hover:opacity-60" style={{ fontSize: 12, fontWeight: 500, color: "#C9918A" }}><div className="w-4 h-4">{Icons.chevLeft}</div>{mod.title}</button>
+        <FadeIn>
+          <div className="flex items-center gap-2 mb-2"><span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.2em", color: "#C9918A" }}>{day.title}</span><span style={{ fontSize: 10, color: "#ddd" }}>·</span><span style={{ fontSize: 10, fontWeight: 500, color: accent }}>{mod.title}</span></div>
+          <h2 style={{ fontSize: 26, fontWeight: 600, color: "#1A1A1A", fontFamily: "'Cormorant Garamond', serif", marginBottom: 32, lineHeight: 1.3 }}>{lesson.title}</h2>
+        </FadeIn>
+        <FadeIn delay={100}><div className="rounded-2xl p-6 md:p-10 mb-8" style={{ backgroundColor: "#fff", border: "1px solid rgba(201,145,138,0.12)" }}><MarkdownLite text={lesson.content} /></div></FadeIn>
+        <FadeIn delay={200}><div className="flex items-center justify-between">
+          {!done[lid] ? <button onClick={() => { const nd = { ...done, [lid]: true }; setDone(nd); const fl = findL(lid); syncProgress([{ type: 'lesson_complete', dayId: fl?.d?.id, moduleId: fl?.m?.id, moduleName: fl?.m?.title, lessonId: lid, lessonName: fl?.l?.title }], { done: nd }); }} className="px-6 py-3 rounded-xl font-semibold text-white" style={{ fontSize: 13, background: "linear-gradient(135deg, #5B0E2D 0%, #8C3F5C 100%)" }}><span className="flex items-center gap-2"><span className="w-4 h-4">{Icons.check}</span>Mark Complete</span></button> : <div className="flex items-center gap-2" style={{ fontSize: 13, fontWeight: 600, color: "#047857" }}><div className="w-4 h-4">{Icons.check}</div>Completed</div>}
+          {isLast ? <button onClick={() => nav({ t: "mod", id: mod.id })} className="px-6 py-3 rounded-xl" style={{ fontSize: 13, fontWeight: 600, border: "1.5px solid #5B0E2D", color: "#5B0E2D" }}><span className="flex items-center gap-2">Test & Exercises<span className="w-4 h-4">{Icons.chevRight}</span></span></button> : nxt ? <button onClick={() => nav({ t: "lesson", id: nxt })} className="px-6 py-3 rounded-xl" style={{ fontSize: 13, fontWeight: 600, border: "1.5px solid #5B0E2D", color: "#5B0E2D" }}><span className="flex items-center gap-2">Next<span className="w-4 h-4">{Icons.chevRight}</span></span></button> : null}
+        </div></FadeIn>
+      </div>
+    );
+  };
+
+  // ── LOADING ──
+  if (initialLoading) return (<div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: "#FAF6F1", fontFamily: "'DM Sans', 'Noto Sans JP', sans-serif" }}><div className="text-center"><div style={{ fontSize: 24, fontWeight: 300, color: "#5B0E2D", fontFamily: "'Cormorant Garamond', serif", marginBottom: 12 }}>Staff Training</div><div style={{ fontSize: 12, color: "#8C7B72" }}>進捗データを読み込み中...</div></div></div>);
+
+  // ── MAIN RETURN ──
+  return (
+    <div className="min-h-screen" style={{ backgroundColor: "#FAF6F1", fontFamily: "'DM Sans', 'Noto Sans JP', sans-serif", color: "#1A1A1A" }}>
+      <div className="fixed inset-0 pointer-events-none z-50" style={{ opacity: 0.03, backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
+      <nav className="sticky top-0 z-40 backdrop-blur-xl" style={{ backgroundColor: "rgba(250,246,241,0.88)", borderBottom: "1px solid rgba(201,145,138,0.1)" }}>
+        <div className="max-w-3xl mx-auto px-4 py-3.5 flex items-center justify-between">
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => nav(mode === "admin" ? { t: "dashboard" } : { t: "home" })}>
+            <span style={{ fontSize: 18, fontWeight: 600, color: "#5B0E2D", fontFamily: "'Cormorant Garamond', serif", letterSpacing: "0.08em" }}>Salon Training</span>
+            <span className="px-1.5 py-0.5 rounded" style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.15em", backgroundColor: "rgba(201,145,138,0.12)", color: "#C9918A" }}>PROGRAM</span>
+          </div>
+          {mode === "trainee" && <div className="flex items-center gap-3"><span style={{ fontSize: 11, fontWeight: 600, color: "#5B0E2D" }}>{doneC}/{totalL}</span><div style={{ width: 64 }}><ProgressBar current={doneC} total={totalL} /></div></div>}
+        </div>
+      </nav>
+
+      {view.t === "home" && renderHome()}
+      {view.t === "mod" && renderMod(view.id)}
+      {view.t === "lesson" && renderLesson(view.id)}
+      {view.t === "dashboard" && renderDashboard()}
+      {view.t === "tech" && renderTech()}
+
+      {techLessonId && <TechLessonModal lessonId={techLessonId} onClose={() => setTechLessonId(null)} />}
+
+      <footer className="text-center py-12" style={{ fontSize: 11, color: "#bbb", letterSpacing: "0.08em" }}>
+        <p style={{ marginTop: 4, fontSize: 10 }}>CONFIDENTIAL — INTERNAL USE ONLY</p>
+      </footer>
+    </div>
+  );
+}
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(React.createElement(App));
+  </script>
+</body>
+</html>
